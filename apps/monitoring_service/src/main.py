@@ -1,33 +1,15 @@
-from concurrent import futures
-from grpc import ServicerContext, server
+import asyncio
 
-from google.protobuf.empty_pb2 import Empty
-
-from protocol.monitoring_service_pb2_grpc import MonitoringServiceServicer, add_MonitoringServiceServicer_to_server
-from protocol.monitoring_service_pb2 import AddTargetRequest
+from monitoring_service.src.service import MonitoringService
+from monitoring_service.src.settings import MonitoringSettings
 
 
-class GreeterService(MonitoringServiceServicer):
-
-    def AddTarget(
-        self,
-        request: AddTargetRequest,
-        context: ServicerContext,
-    ) -> Empty:
-        print(f"got request {request}")
-        return Empty()
-
-
-def serve() -> None:
-    service = server(futures.ThreadPoolExecutor(max_workers=10))
-    add_MonitoringServiceServicer_to_server(
-        GreeterService(),
-        service,
-    )
-    service.add_insecure_port("[::]:50051")
-    service.start()
-    service.wait_for_termination()
+async def main() -> None:
+    settings = MonitoringSettings()
+    service = MonitoringService(settings)
+    await service.start()
+    await service.run()
 
 
 if __name__ == "__main__":
-    serve()
+    asyncio.run(main())
