@@ -1,10 +1,7 @@
-from prometheus_client import Counter, Histogram, Gauge
-
+from prometheus_client import Counter, Gauge, Histogram
 
 REQUESTS_TOTAL = Counter(
-    name="app_requests_total",
-    documentation="Total number of processed requests",
-    labelnames=("path", "method")
+    name="app_requests_total", documentation="Total number of processed requests", labelnames=("path", "method")
 )
 
 REQUEST_LATENCY = Histogram(

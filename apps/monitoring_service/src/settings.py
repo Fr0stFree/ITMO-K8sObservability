@@ -1,6 +1,7 @@
-from pydantic_settings import BaseSettings
 import logging
 import logging.config
+
+from pydantic_settings import BaseSettings
 
 
 class MonitoringSettings(BaseSettings):

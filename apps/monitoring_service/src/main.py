@@ -8,7 +8,6 @@ async def main() -> None:
     settings = MonitoringSettings()
     service = MonitoringService(settings)
     await service.start()
-    await service.run()
 
 
 if __name__ == "__main__":

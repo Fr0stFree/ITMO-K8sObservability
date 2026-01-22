@@ -1,6 +1,7 @@
 import logging
 from threading import Thread
 from wsgiref.simple_server import WSGIServer
+
 from prometheus_client import Counter, Histogram, start_http_server
 
 
@@ -12,7 +13,7 @@ class MetricsServer:
         self.thread: Thread
 
     def start(self):
-        self.logger.info(f"Starting the metrics server on port {self.port}...")
+        self.logger.info("Starting the metrics server on port %d...", self.port)
         self.server, self.thread = start_http_server(self.port)
 
     def stop(self):
