@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package monitoring_service;
+
+import "google/protobuf/empty.proto";
+
+service MonitoringService {
+  rpc AddTarget (AddTargetRequest) returns (google.protobuf.Empty);
+}
+
+message AddTargetRequest {
+  string target_url = 1;
+}

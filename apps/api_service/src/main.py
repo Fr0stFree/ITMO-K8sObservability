@@ -5,7 +5,9 @@ import uvicorn
 from fastapi import FastAPI
 
 from api_service.src.config import logger, LOGGING_CONFIG
-from protocol import greeter_pb2_grpc, greeter_pb2
+from protocol.monitoring_service_pb2_grpc import MonitoringServiceStub
+from protocol.monitoring_service_pb2 import AddTargetRequest
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
@@ -17,15 +19,13 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 app = FastAPI(lifespan=lifespan)
 
 
-@app.get("/")
-async def root():
+@app.get("/{url}")
+async def root(url: str):
     channel = grpc.insecure_channel("localhost:50051")
-    stub = greeter_pb2_grpc.GreeterServiceStub(channel)
-    response = stub.SayHello(
-        greeter_pb2.HelloRequest(name="Danila")
-    )
-    return {"result": response.message}
-
+    stub = MonitoringServiceStub(channel)
+    response = stub.AddTarget(AddTargetRequest(target_url=url))
+    print(f"{response = }")
+    return "OK"
 
 
 if __name__ == "__main__":

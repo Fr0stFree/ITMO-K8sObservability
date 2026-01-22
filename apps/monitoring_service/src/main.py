@@ -1,30 +1,32 @@
 from concurrent import futures
-import grpc
+from grpc import ServicerContext, server
 
-from protocol import greeter_pb2, greeter_pb2_grpc
+from google.protobuf.empty_pb2 import Empty
+
+from protocol.monitoring_service_pb2_grpc import MonitoringServiceServicer, add_MonitoringServiceServicer_to_server
+from protocol.monitoring_service_pb2 import AddTargetRequest
 
 
-class GreeterService(greeter_pb2_grpc.GreeterServiceServicer):
+class GreeterService(MonitoringServiceServicer):
 
-    def SayHello(self, request, context):
-        return greeter_pb2.HelloReply(
-            message=f"Hello, {request.name}!"
-        )
+    def AddTarget(
+        self,
+        request: AddTargetRequest,
+        context: ServicerContext,
+    ) -> Empty:
+        print(f"got request {request}")
+        return Empty()
 
 
 def serve() -> None:
-    server = grpc.server(
-        futures.ThreadPoolExecutor(max_workers=10)
-    )
-
-    greeter_pb2_grpc.add_GreeterServiceServicer_to_server(
+    service = server(futures.ThreadPoolExecutor(max_workers=10))
+    add_MonitoringServiceServicer_to_server(
         GreeterService(),
-        server,
+        service,
     )
-
-    server.add_insecure_port("[::]:50051")
-    server.start()
-    server.wait_for_termination()
+    service.add_insecure_port("[::]:50051")
+    service.start()
+    service.wait_for_termination()
 
 
 if __name__ == "__main__":
