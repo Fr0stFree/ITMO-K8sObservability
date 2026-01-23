@@ -1,19 +1,18 @@
 from dependency_injector import containers, providers
 
-from common.databases.postgres import PostgresClient, PostgresSettings
-from common.grpc import GRPCServer, GRPCServerSettings
+from common.grpc import GRPCClient, GRPCClientSettings
 from common.http import HTTPServer, HTTPServerSettings
 from common.logs import new_logger
 from common.logs.settings import LOGGING_CONFIG
 from common.metrics import MetricsServer, MetricsServerSettings
 from common.tracing import TraceExporter, TraceExporterSettings
-from service_crawler.src.rpc import RPCServicer
+from protocol.crawler_pb2_grpc import CrawlerServiceStub
 
 
 class Container(containers.DeclarativeContainer):
     settings = providers.Configuration()
 
-    logger = providers.Singleton(new_logger, config=LOGGING_CONFIG, name=settings.service_name)
+    logger = providers.Singleton(new_logger, config=LOGGING_CONFIG, name="APIService")
     http_server = providers.Singleton(
         HTTPServer,
         settings=HTTPServerSettings(),
@@ -24,17 +23,10 @@ class Container(containers.DeclarativeContainer):
         settings=MetricsServerSettings(),
         logger=logger,
     )
-    rpc_servicer = providers.Singleton(RPCServicer)
-    grpc_server = providers.Singleton(
-        GRPCServer,
-        servicer=rpc_servicer,
-        registerer=rpc_servicer.provided.registerer,
-        settings=GRPCServerSettings(),
-        logger=logger,
-    )
-    db_client = providers.Singleton(
-        PostgresClient,
-        settings=PostgresSettings(),
+    grpc_client = providers.Singleton(
+        GRPCClient,
+        settings=GRPCClientSettings(),
+        stub_class=CrawlerServiceStub,
         logger=logger,
     )
     trace_exporter = providers.Singleton(

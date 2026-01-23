@@ -36,11 +36,11 @@ class TraceExporter:
         trace.set_tracer_provider(self._provider)
 
     async def stop(self) -> None:
-        self._logger.info("Shutting down the tracer exported server....")
+        self._logger.info("Stopping trace exporter...")
         self._provider.shutdown()
 
     async def is_healthy(self) -> bool:
         if not self._settings.enabled:
             return True
-        # TODO: check somehow
+
         return True

@@ -1,10 +1,10 @@
 syntax = "proto3";
 
-package monitoring_service;
+package crawler;
 
 import "google/protobuf/empty.proto";
 
-service MonitoringService {
+service CrawlerService {
   rpc AddTarget (AddTargetRequest) returns (google.protobuf.Empty);
 }
 
