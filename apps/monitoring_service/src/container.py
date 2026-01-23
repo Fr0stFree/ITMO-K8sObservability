@@ -1,25 +1,30 @@
 from dependency_injector import containers, providers
 
+from common.databases.postgres.client import PostgresClient
+from common.databases.postgres.settings import PostgresSettings
+from common.logs.settings import LOGGING_CONFIG
 from common.grpc.server import GRPCServer
 from common.http.server import HTTPServer
 from common.logs.logger import new_logger
 from common.metrics.server import MetricsServer
-from monitoring_service.src.rpc import RPCServicer
-from monitoring_service.src.settings import LOGGING_CONFIG
+from monitoring_service.src.handlers.rpc import RPCServicer
+from common.grpc.settings import GRPCServerSettings
+from common.http.settings import HTTPServerSettings
+from common.metrics.settings import MetricsServerSettings
 
 
 class Container(containers.DeclarativeContainer):
-    config = providers.Configuration()
+    settings = providers.Configuration()
 
     logger = providers.Singleton(new_logger, config=LOGGING_CONFIG, name="MonitoringService")
     http_server = providers.Singleton(
         HTTPServer,
-        port=config.http_server_port,
+        settings=HTTPServerSettings(),
         logger=logger,
     )
     metrics_server = providers.Singleton(
         MetricsServer,
-        port=config.metrics_server_port,
+        settings=MetricsServerSettings(),
         logger=logger,
     )
     rpc_servicer = providers.Singleton(RPCServicer)
@@ -27,7 +32,11 @@ class Container(containers.DeclarativeContainer):
         GRPCServer,
         servicer=rpc_servicer,
         registerer=rpc_servicer.provided.registerer,
-        workers=config.grpc_workers,
-        port=config.grpc_server_port,
+        settings=GRPCServerSettings(),
+        logger=logger,
+    )
+    db_client = providers.Singleton(
+        PostgresClient,
+        settings=PostgresSettings(),
         logger=logger,
     )

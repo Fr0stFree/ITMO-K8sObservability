@@ -4,22 +4,24 @@ from wsgiref.simple_server import WSGIServer
 
 from prometheus_client import start_http_server
 
+from common.metrics.settings import MetricsServerSettings
+
 
 class MetricsServer:
-    def __init__(self, port: int, logger: logging.Logger) -> None:
-        self.port = port
-        self.logger = logger
+    def __init__(self, settings: MetricsServerSettings, logger: logging.Logger) -> None:
+        self._settings = settings
+        self._logger = logger
 
-        self.server: WSGIServer
-        self.thread: Thread
+        self._server: WSGIServer
+        self._thread: Thread
 
     async def start(self) -> None:
-        self.logger.info("Starting the metrics server on port %d...", self.port)
-        self.server, self.thread = start_http_server(self.port)
+        self._logger.info("Starting the metrics server on port %d...", self._settings.port)
+        self._server, self._thread = start_http_server(self._settings.port)
 
     async def stop(self) -> None:
-        self.logger.info("Shutting down the metrics server...")
-        self.server.shutdown()
+        self._logger.info("Shutting down the metrics server...")
+        self._server.shutdown()
 
     async def is_healthy(self) -> bool:
-        return self.thread.is_alive()
+        return self._thread.is_alive()
