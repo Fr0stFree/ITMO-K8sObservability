@@ -5,3 +5,10 @@ prometheus_client==0.24.1
 python_json_logger==4.0.0
 grpcio-tools
 grpcio
+aiohttp==3.13.3
+
+# test requirements
+black
+isort
+
+# TODO: switch to uv

@@ -1,13 +1,11 @@
-import logging
-import logging.config
-
 from pydantic_settings import BaseSettings
 
 
 class MonitoringSettings(BaseSettings):
-    rpc_workers: int = 10
-    rpc_server_port: int = 50051
-    metrics_server_port: int = 8000
+    grpc_workers: int = 10
+    grpc_server_port: int = 50051
+    http_server_port: int = 8000
+    metrics_server_port: int = 9000
 
     @property
     def logging(self) -> dict:
