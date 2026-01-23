@@ -5,7 +5,7 @@ import grpc
 import uvicorn
 from fastapi import Depends, FastAPI
 
-from apps.api_service.src.logs import LOGGING_CONFIG, logger
+from apps.service_api.src.logs import LOGGING_CONFIG, logger
 from protocol.monitoring_service_pb2 import AddTargetRequest
 from protocol.monitoring_service_pb2_grpc import MonitoringServiceStub
 

@@ -10,7 +10,7 @@ from common.grpc.server import GRPCServer
 from common.http.server import HTTPServer
 from common.logs.logger import LoggerLike
 from common.metrics.server import MetricsServer
-from monitoring_service.src.container import Container
+from service_crawler.src.container import Container
 
 
 @inject

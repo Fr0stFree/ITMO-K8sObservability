@@ -9,8 +9,8 @@ from common.http.server import HTTPServer
 from common.logs.logger import LoggerLike
 from common.metrics.server import MetricsServer
 from common.tracing.exporter import TraceExporter
-from monitoring_service.src.container import Container
-from monitoring_service.src.handlers import http
+from service_crawler.src.container import Container
+from service_crawler.src.handlers import http
 
 
 class MonitoringService:

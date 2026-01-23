@@ -1,8 +1,8 @@
 import asyncio
 
-from monitoring_service.src.container import Container
-from monitoring_service.src.service import MonitoringService
-from monitoring_service.src.settings import MonitoringServiceSettings
+from service_crawler.src.container import Container
+from service_crawler.src.service import MonitoringService
+from service_crawler.src.settings import MonitoringServiceSettings
 
 
 async def main() -> None:
