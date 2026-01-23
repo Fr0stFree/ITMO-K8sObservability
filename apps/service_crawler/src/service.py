@@ -4,11 +4,11 @@ import signal
 
 from dependency_injector.wiring import Provide, inject
 
-from common.grpc.server import GRPCServer
-from common.http.server import HTTPServer
-from common.logs.logger import LoggerLike
-from common.metrics.server import MetricsServer
-from common.tracing.exporter import TraceExporter
+from common.grpc import GRPCServer
+from common.http import HTTPServer
+from common.logs import LoggerLike
+from common.metrics import MetricsServer
+from common.tracing import TraceExporter
 from service_crawler.src import http
 from service_crawler.src.container import Container
 

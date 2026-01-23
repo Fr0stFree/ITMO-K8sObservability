@@ -5,11 +5,11 @@ from http import HTTPStatus
 from aiohttp.web import Request, Response, json_response
 from dependency_injector.wiring import Provide, inject
 
-from common.databases.postgres.client import PostgresClient
-from common.grpc.server import GRPCServer
-from common.http.server import HTTPServer
-from common.logs.logger import LoggerLike
-from common.metrics.server import MetricsServer
+from common.databases.postgres import PostgresClient
+from common.grpc import GRPCServer
+from common.http import HTTPServer
+from common.logs import LoggerLike
+from common.metrics import MetricsServer
 from service_crawler.src.container import Container
 
 

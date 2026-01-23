@@ -1,17 +1,12 @@
 from dependency_injector import containers, providers
 
-from common.databases.postgres.client import PostgresClient
-from common.databases.postgres.settings import PostgresSettings
-from common.grpc.server import GRPCServer
-from common.grpc.settings import GRPCServerSettings
-from common.http.server import HTTPServer
-from common.http.settings import HTTPServerSettings
-from common.logs.logger import new_logger
+from common.databases.postgres import PostgresClient, PostgresSettings
+from common.grpc import GRPCServer, GRPCServerSettings
+from common.http import HTTPServer, HTTPServerSettings
+from common.logs import new_logger
 from common.logs.settings import LOGGING_CONFIG
-from common.metrics.server import MetricsServer
-from common.metrics.settings import MetricsServerSettings
-from common.tracing.exporter import TraceExporter
-from common.tracing.settings import TraceExporterSettings
+from common.metrics import MetricsServer, MetricsServerSettings
+from common.tracing import TraceExporter, TraceExporterSettings
 from service_crawler.src.rpc import RPCServicer
 
 
