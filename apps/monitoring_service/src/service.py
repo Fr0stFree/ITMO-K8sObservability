@@ -4,11 +4,11 @@ from http import HTTPMethod
 
 from dependency_injector.wiring import Provide, inject
 
-from common.databases.postgres.client import PostgresClient
 from common.grpc.server import GRPCServer
 from common.http.server import HTTPServer
 from common.logs.logger import LoggerLike
 from common.metrics.server import MetricsServer
+from common.tracing.exporter import TraceExporter
 from monitoring_service.src.container import Container
 from monitoring_service.src.handlers import http
 
@@ -26,11 +26,11 @@ class MonitoringService:
         http_server: HTTPServer = Provide[Container.http_server],
         metrics_server: MetricsServer = Provide[Container.metrics_server],
         grpc_server: GRPCServer = Provide[Container.grpc_server],
-        db_client: PostgresClient = Provide[Container.db_client],
+        trace_exporter: TraceExporter = Provide[Container.trace_exporter],
     ) -> None:
         logger.info("Starting the app...")
         running = asyncio.Event()
-        for component in (grpc_server, metrics_server, http_server, db_client):
+        for component in (grpc_server, metrics_server, http_server, trace_exporter):
             await component.start()
         logger.info("The app has been started")
 
@@ -48,10 +48,10 @@ class MonitoringService:
         http_server: HTTPServer = Provide[Container.http_server],
         metrics_server: MetricsServer = Provide[Container.metrics_server],
         grpc_server: GRPCServer = Provide[Container.grpc_server],
-        db_client: PostgresClient = Provide[Container.db_client],
+        trace_exporter: TraceExporter = Provide[Container.trace_exporter],
     ) -> None:
         logger.info("Stopping the app...")
-        for component in (grpc_server, metrics_server, http_server, db_client):
+        for component in (grpc_server, metrics_server, http_server, trace_exporter):
             try:
                 await component.stop()
             except Exception as error:

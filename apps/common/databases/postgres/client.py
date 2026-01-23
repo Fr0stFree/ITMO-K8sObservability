@@ -1,7 +1,8 @@
 from typing import AsyncGenerator
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy.orm import sessionmaker
+
 from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.orm import sessionmaker
 
 from common.databases.postgres.settings import PostgresSettings
 from common.logs.logger import LoggerLike
@@ -22,7 +23,6 @@ class PostgresClient:
         self._logger.info("Connecting to db on %s:%s...", self._settings.host, self._settings.port)
         async with self._engine.connect() as conn:
             await conn.execute(text("SELECT 1"))
-
 
     async def stop(self) -> None:
         self._logger.info("Shutting down the postgres client...")
