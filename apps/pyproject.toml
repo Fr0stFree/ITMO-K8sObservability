@@ -1,0 +1,31 @@
+[tool.black]
+line-length = 120
+target-version = ["py312"]
+skip-string-normalization = false
+
+[tool.isort]
+profile = "black"
+line_length = 120
+combine_as_imports = true
+force_sort_within_sections = true
+known_first_party = ["api_service", "checker_service", "notification_service"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+lint.select = [
+  "E",   # pycodestyle
+  "F",   # pyflakes (unused imports, vars)
+  "I",   # isort rules (но без форматирования)
+  "UP",  # pyupgrade
+]
+
+lint.ignore = [
+  "E501",
+]
+
+fix = true
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]

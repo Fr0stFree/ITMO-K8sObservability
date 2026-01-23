@@ -1,6 +1,6 @@
 import asyncio
-import signal
 from http import HTTPMethod
+import signal
 
 from dependency_injector.wiring import Provide, inject
 
@@ -9,11 +9,11 @@ from common.http.server import HTTPServer
 from common.logs.logger import LoggerLike
 from common.metrics.server import MetricsServer
 from common.tracing.exporter import TraceExporter
+from service_crawler.src import http
 from service_crawler.src.container import Container
-from service_crawler.src.handlers import http
 
 
-class MonitoringService:
+class CrawlerService:
 
     @inject
     def __init__(self, http_server: HTTPServer = Provide[Container.http_server]) -> None:
@@ -55,6 +55,10 @@ class MonitoringService:
             try:
                 await component.stop()
             except Exception as error:
-                logger.warning("An error occurred while stopping the %s: %s", component.__class__.__name__, error)
+                logger.warning(
+                    "An error occurred while stopping the %s: %s",
+                    component.__class__.__name__,
+                    error,
+                )
 
         logger.info("The app has been stopped")

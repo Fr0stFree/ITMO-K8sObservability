@@ -1,15 +1,15 @@
 import asyncio
 
 from service_crawler.src.container import Container
-from service_crawler.src.service import MonitoringService
-from service_crawler.src.settings import MonitoringServiceSettings
+from service_crawler.src.service import CrawlerService
+from service_crawler.src.settings import CrawlerServiceSettings
 
 
 async def main() -> None:
     container = Container()
-    container.settings.from_pydantic(MonitoringServiceSettings())
+    container.settings.from_pydantic(CrawlerServiceSettings())
     container.wire(packages=["."])
-    service = MonitoringService()
+    service = CrawlerService()
     await service.start()
 
 

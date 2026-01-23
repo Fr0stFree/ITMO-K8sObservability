@@ -1,9 +1,9 @@
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator
 
+from fastapi import FastAPI
 import grpc
 import uvicorn
-from fastapi import Depends, FastAPI
 
 from apps.service_api.src.logs import LOGGING_CONFIG, logger
 from protocol.monitoring_service_pb2 import AddTargetRequest

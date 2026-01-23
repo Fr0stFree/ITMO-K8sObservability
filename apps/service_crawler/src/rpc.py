@@ -3,7 +3,10 @@ from grpc.aio import ServicerContext
 
 from common.grpc.server import IServicerRegisterer
 from protocol.monitoring_service_pb2 import AddTargetRequest
-from protocol.monitoring_service_pb2_grpc import MonitoringServiceServicer, add_MonitoringServiceServicer_to_server
+from protocol.monitoring_service_pb2_grpc import (
+    MonitoringServiceServicer,
+    add_MonitoringServiceServicer_to_server,
+)
 
 
 class RPCServicer(MonitoringServiceServicer):

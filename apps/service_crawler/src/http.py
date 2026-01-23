@@ -26,7 +26,8 @@ async def health(
     components = (http_server, metrics_server, grpc_server, db_client)
     checks = {component.__class__.__name__: component.is_healthy() for component in components}
     results = await asyncio.wait_for(
-        asyncio.gather(*checks.values(), return_exceptions=True), timeout=health_check_timeout.total_seconds()
+        asyncio.gather(*checks.values(), return_exceptions=True),
+        timeout=health_check_timeout.total_seconds(),
     )
 
     body, alive, dead = {}, [], []

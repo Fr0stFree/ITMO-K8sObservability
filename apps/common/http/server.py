@@ -1,5 +1,5 @@
+from collections.abc import Awaitable, Callable
 from http import HTTPMethod
-from typing import Awaitable, Callable
 
 from aiohttp.web import Application, AppRunner, Request, Response, TCPSite
 
@@ -19,7 +19,12 @@ class HTTPServer:
         self._site: TCPSite
 
     def add_handler(self, path: str, handler: IHttpHandler, method: HTTPMethod) -> None:
-        self._logger.info("Registering HTTP-%s handler %s", method, path, extra={"path": path, "method": method})
+        self._logger.info(
+            "Registering HTTP-%s handler %s",
+            method,
+            path,
+            extra={"path": path, "method": method},
+        )
         self._app.router.add_route(method, path, handler)
 
     async def is_healthy(self) -> bool:

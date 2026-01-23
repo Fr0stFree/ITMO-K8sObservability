@@ -2,9 +2,13 @@
 
 set -euo pipefail
 
-echo "[styling] Formatting python files..."
+echo "Running ruff (fix)..."
+ruff check . --fix
 
-isort --line-length 120 common/ monitoring_service/ api_service/
-black --line-length 120 common/ monitoring_service/ api_service/
+echo "Running isort..."
+isort .
 
-echo "[styling] Files has been formatted successfully"
+echo "Running black..."
+black .
+
+echo "Formatting completed successfully."

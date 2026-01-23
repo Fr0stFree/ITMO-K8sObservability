@@ -12,7 +12,7 @@ from common.metrics.server import MetricsServer
 from common.metrics.settings import MetricsServerSettings
 from common.tracing.exporter import TraceExporter
 from common.tracing.settings import TraceExporterSettings
-from service_crawler.src.handlers.rpc import RPCServicer
+from service_crawler.src.rpc import RPCServicer
 
 
 class Container(containers.DeclarativeContainer):
