@@ -6,6 +6,7 @@ python_json_logger==4.0.0
 grpcio-tools
 grpcio
 aiohttp==3.13.3
+dependency-injector==4.48.3
 
 # test requirements
 black

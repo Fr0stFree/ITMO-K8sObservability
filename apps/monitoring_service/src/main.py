@@ -1,12 +1,15 @@
 import asyncio
 
+from monitoring_service.src.container import Container
 from monitoring_service.src.service import MonitoringService
 from monitoring_service.src.settings import MonitoringSettings
 
 
 async def main() -> None:
-    settings = MonitoringSettings()
-    service = MonitoringService(settings)
+    container = Container()
+    container.config.from_pydantic(MonitoringSettings())
+    container.wire(packages=["."])
+    service = MonitoringService()
     await service.start()
 
 
