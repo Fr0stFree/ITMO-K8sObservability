@@ -10,7 +10,7 @@ class OnURLCrawledCallback(Protocol):
     async def __call__(self, url: CrawledURL) -> None: ...
 
 
-class Consumer:
+class Handler:
     def __init__(
         self,
         queue: asyncio.Queue[CrawledURL],

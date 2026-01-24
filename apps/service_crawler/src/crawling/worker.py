@@ -11,11 +11,11 @@ from service_crawler.src.crawling.models import CrawledURL
 
 
 class Worker:
-    def __init__(self, urls: Iterable[str], logger: LoggerLike, results: asyncio.Queue[CrawledURL]) -> None:
+    def __init__(self, urls: Iterable[str], logger: LoggerLike, queue: asyncio.Queue[CrawledURL]) -> None:
         self._urls_to_crawl = set(urls)
-        self._results = results
+        self._queue = queue
         self._logger = logger
-        self._session = ClientSession()
+        self._session = ClientSession()  # TODO: upgrade
         self._task: asyncio.Task | None = None
 
     async def start(self) -> None:
@@ -25,7 +25,7 @@ class Worker:
         while True:
             for url in cycle(self._urls_to_crawl):
                 crawled_url = await self._crawl(url)
-                await self._results.put(crawled_url)
+                await self._queue.put(crawled_url)
 
     async def _crawl(self, url: str) -> CrawledURL:
         try:
