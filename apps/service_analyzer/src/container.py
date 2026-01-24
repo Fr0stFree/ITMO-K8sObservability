@@ -1,23 +1,28 @@
 from dependency_injector import containers, providers
 
-from common.grpc import GRPCClient
+from common.databases.postgres import PostgresClient, PostgresSettings
+from common.grpc import GRPCServer, GRPCServerSettings
 from common.http import HTTPServer, HTTPServerSettings
 from common.logs import new_logger
 from common.logs.settings import LOGGING_CONFIG
 from common.metrics import MetricsServer, MetricsServerSettings
 from common.tracing import TraceExporter, TraceExporterSettings
-from protocol.analyzer_pb2_grpc import AnalyzerServiceStub
-from protocol.crawler_pb2_grpc import CrawlerServiceStub
+from service_analyzer.src.rpc import RPCServicer
 
 
 class Container(containers.DeclarativeContainer):
     settings = providers.Configuration()
 
-    logger = providers.Singleton(new_logger, config=LOGGING_CONFIG, name="APIService")
+    logger = providers.Singleton(new_logger, config=LOGGING_CONFIG, name=settings.service_name)
     http_server = providers.Singleton(HTTPServer, settings=HTTPServerSettings(), logger=logger)
     metrics_server = providers.Singleton(MetricsServer, settings=MetricsServerSettings(), logger=logger)
+    rpc_servicer = providers.Singleton(RPCServicer)
+    grpc_server = providers.Singleton(
+        GRPCServer,
+        servicer=rpc_servicer,
+        registerer=rpc_servicer.provided.registerer,
+        settings=GRPCServerSettings(),
+        logger=logger,
+    )
+    db_client = providers.Singleton(PostgresClient, settings=PostgresSettings(), logger=logger)
     trace_exporter = providers.Singleton(TraceExporter, settings=TraceExporterSettings(), logger=logger)
-    crawler_client = providers.Singleton(GRPCClient, address=settings.crawler_target_address, logger=logger)
-    crawler_stub = providers.Factory(CrawlerServiceStub, channel=crawler_client.provided.channel)
-    analyzer_client = providers.Singleton(GRPCClient, address=settings.analyzer_target_address, logger=logger)
-    analyzer_stub = providers.Factory(AnalyzerServiceStub, channel=analyzer_client.provided.channel)

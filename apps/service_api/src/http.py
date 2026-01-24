@@ -1,15 +1,18 @@
-import asyncio
 import datetime as dt
 from http import HTTPStatus
 from json import JSONDecodeError
 
 from aiohttp.web import Request, Response, json_response
 from dependency_injector.wiring import Provide, inject
+from google.protobuf.json_format import MessageToDict
 
 from common.grpc import GRPCClient
 from common.http import HTTPServer
 from common.logs import LoggerLike
 from common.metrics import MetricsServer
+from common.utils.health import check_health
+from protocol.analyzer_pb2 import GetTargetDetailsRequest
+from protocol.analyzer_pb2_grpc import AnalyzerServiceStub
 from protocol.crawler_pb2 import AddTargetRequest
 from protocol.crawler_pb2_grpc import CrawlerServiceStub
 from service_api.src.container import Container
@@ -24,27 +27,18 @@ async def health(
     metrics_server: MetricsServer = Provide[Container.metrics_server],
     crawler_client: GRPCClient = Provide[Container.crawler_client],
 ) -> Response:
-    components = (http_server, metrics_server, crawler_client)
-    checks = {component.__class__.__name__: component.is_healthy() for component in components}
-    results = await asyncio.wait_for(
-        asyncio.gather(*checks.values(), return_exceptions=True),
-        timeout=health_check_timeout.total_seconds(),
+    result = await check_health(
+        http_server,
+        metrics_server,
+        crawler_client,
+        timeout=health_check_timeout,
     )
+    logger.info("Health check result: %s", result)
 
-    body, alive, dead = {}, [], []
-    for name, result in zip(checks.keys(), results):
-        is_alive = False if isinstance(result, Exception) else result
-        body[name] = is_alive
-        if is_alive:
-            alive.append(name)
-        else:
-            dead.append(name)
+    if all(result.values()):
+        return json_response(status=HTTPStatus.OK)
 
-    logger.info("Health check result - alive: %s. dead: %s.", ", ".join(alive), ", ".join(dead))
-    if not dead:
-        return json_response(body, status=HTTPStatus.OK)
-
-    return json_response(body, status=HTTPStatus.GATEWAY_TIMEOUT)
+    return json_response(status=HTTPStatus.GATEWAY_TIMEOUT)
 
 
 @inject
@@ -57,11 +51,25 @@ async def add_target(
     except JSONDecodeError:
         return Response(text="Invalid JSON body", status=HTTPStatus.BAD_REQUEST)
 
-    body = await request.json()
     target_url = body.get("target_url")
     if not target_url:
         return Response(text="missing target_url field", status=HTTPStatus.BAD_REQUEST)
 
-    request = AddTargetRequest(target_url=target_url)
-    await crawler_stub.AddTarget(request)
+    rpc_request = AddTargetRequest(target_url=target_url)
+    await crawler_stub.AddTarget(rpc_request)
     return Response(status=HTTPStatus.CREATED)
+
+
+@inject
+async def target_details(
+    request: Request,
+    analyzer_stub: AnalyzerServiceStub = Provide[Container.analyzer_stub],
+) -> Response:
+    target_id = request.match_info.get("target_id")
+    if not target_id:
+        return Response(text="missing target_id in path", status=HTTPStatus.BAD_REQUEST)
+
+    rpc_request = GetTargetDetailsRequest(id=target_id)
+    rpc_response = await analyzer_stub.GetTargetDetails(rpc_request)
+    response_body = MessageToDict(rpc_response, preserving_proto_field_name=True)
+    return json_response(response_body, status=HTTPStatus.OK)

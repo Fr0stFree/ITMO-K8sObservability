@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package analyzer;
+
+service AnalyzerService {
+  rpc GetTargetDetails (GetTargetDetailsRequest) returns (GetTargetDetailsResponse);
+}
+
+message GetTargetDetailsRequest {
+  string id = 1;
+}
+
+message GetTargetDetailsResponse {
+  string id = 1;
+  string url = 2;
+  string status = 3;
+  int64 checked_at = 4;
+}

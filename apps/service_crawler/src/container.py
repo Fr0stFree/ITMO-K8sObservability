@@ -1,6 +1,5 @@
 from dependency_injector import containers, providers
 
-from common.databases.postgres import PostgresClient, PostgresSettings
 from common.grpc import GRPCServer, GRPCServerSettings
 from common.http import HTTPServer, HTTPServerSettings
 from common.logs import new_logger
@@ -30,11 +29,6 @@ class Container(containers.DeclarativeContainer):
         servicer=rpc_servicer,
         registerer=rpc_servicer.provided.registerer,
         settings=GRPCServerSettings(),
-        logger=logger,
-    )
-    db_client = providers.Singleton(
-        PostgresClient,
-        settings=PostgresSettings(),
         logger=logger,
     )
     trace_exporter = providers.Singleton(

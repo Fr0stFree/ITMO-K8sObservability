@@ -8,6 +8,7 @@ from common.logs.logger import LoggerLike
 
 type IServicer = object
 
+
 class IServicerRegisterer(Protocol):
     def __call__(self, servicer: IServicer, server: Server) -> None: ...
 

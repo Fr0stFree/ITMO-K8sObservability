@@ -1,5 +1,6 @@
-from pydantic_settings import BaseSettings
 from pydantic import Field
+from pydantic_settings import BaseSettings
+
 
 class TraceExporterSettings(BaseSettings):
     service_name: str = Field("monitoring-service", alias="TRACE_EXPORTER_SERVICE_NAME")
