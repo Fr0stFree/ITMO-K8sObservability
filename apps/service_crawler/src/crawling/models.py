@@ -1,7 +1,6 @@
 from dataclasses import dataclass
-from typing import Literal
-
 import datetime as dt
+from typing import Literal
 
 
 @dataclass
