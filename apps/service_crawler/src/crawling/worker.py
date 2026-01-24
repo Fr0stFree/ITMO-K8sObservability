@@ -1,5 +1,5 @@
 import asyncio
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable
 from contextlib import suppress
 import datetime as dt
 from itertools import cycle
@@ -8,42 +8,6 @@ from aiohttp import ClientSession
 
 from common.logs.logger import LoggerLike
 from service_crawler.src.crawling.models import CrawledURL
-
-
-class WorkerPool:
-    def __init__(
-        self,
-        amount: int,
-        urls: Sequence[str],
-        queue: asyncio.Queue,
-        logger: LoggerLike,
-    ) -> None:
-        urls_per_crawler = len(urls) // amount
-        self._amount = amount
-        self._logger = logger
-        self._crawlers = [
-            Worker(
-                urls=list(urls[i : i + urls_per_crawler]),
-                logger=logger,
-                results=queue,
-            )
-            for i in range(0, len(urls), urls_per_crawler)
-        ]
-
-    @property
-    def amount(self) -> int:
-        return self._amount
-
-    async def start(self) -> None:
-        for crawler in self._crawlers:
-            asyncio.create_task(crawler.start())
-
-    async def stop(self) -> None:
-        await asyncio.gather(*(crawler.stop() for crawler in self._crawlers))
-
-    async def is_healthy(self) -> bool:
-        results = await asyncio.gather(*(crawler.is_healthy() for crawler in self._crawlers))
-        return all(results)
 
 
 class Worker:
