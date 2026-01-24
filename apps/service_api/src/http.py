@@ -1,6 +1,7 @@
 import asyncio
 import datetime as dt
 from http import HTTPStatus
+from json import JSONDecodeError
 
 from aiohttp.web import Request, Response, json_response
 from dependency_injector.wiring import Provide, inject
@@ -10,7 +11,7 @@ from common.http import HTTPServer
 from common.logs import LoggerLike
 from common.metrics import MetricsServer
 from protocol.crawler_pb2 import AddTargetRequest
-from protocol.crawler_pb2_grpc import CrawlerService
+from protocol.crawler_pb2_grpc import CrawlerServiceStub
 from service_api.src.container import Container
 
 
@@ -21,9 +22,9 @@ async def health(
     logger: LoggerLike = Provide[Container.logger],
     http_server: HTTPServer = Provide[Container.http_server],
     metrics_server: MetricsServer = Provide[Container.metrics_server],
-    grpc_client: GRPCClient = Provide[Container.grpc_client],
+    crawler_client: GRPCClient = Provide[Container.crawler_client],
 ) -> Response:
-    components = (http_server, metrics_server, grpc_client)
+    components = (http_server, metrics_server, crawler_client)
     checks = {component.__class__.__name__: component.is_healthy() for component in components}
     results = await asyncio.wait_for(
         asyncio.gather(*checks.values(), return_exceptions=True),
@@ -47,12 +48,20 @@ async def health(
 
 
 @inject
-async def create_target(
+async def add_target(
     request: Request,
-    logger: LoggerLike = Provide[Container.logger],
-    grpc_client: GRPCClient = Provide[Container.grpc_client],
+    crawler_stub: CrawlerServiceStub = Provide[Container.crawler_stub],
 ) -> Response:
-    logger.info("Received create target request")
-    service: CrawlerService = grpc_client.stub
-    await service.AddTarget(request=AddTargetRequest(target_url="http://example.com"))
-    return Response(text="Target creation request sent", status=HTTPStatus.OK)
+    try:
+        body = await request.json()
+    except JSONDecodeError:
+        return Response(text="Invalid JSON body", status=HTTPStatus.BAD_REQUEST)
+
+    body = await request.json()
+    target_url = body.get("target_url")
+    if not target_url:
+        return Response(text="missing target_url field", status=HTTPStatus.BAD_REQUEST)
+
+    request = AddTargetRequest(target_url=target_url)
+    await crawler_stub.AddTarget(request)
+    return Response(status=HTTPStatus.CREATED)

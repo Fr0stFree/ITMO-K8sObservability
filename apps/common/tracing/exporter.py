@@ -21,7 +21,7 @@ class TraceExporter:
             return
 
         self._logger.info(
-            "Starting to exporting traces to '%s' utilizing '%s'",
+            "Starting to export traces to '%s' utilizing '%s'",
             self._settings.otlp_endpoint,
             self._settings.protocol,
         )

@@ -18,7 +18,7 @@ class APIService:
     @inject
     def __init__(self, http_server: HTTPServer = Provide[Container.http_server]) -> None:
         http_server.add_handler(path="/health", handler=http.health, method=HTTPMethod.GET)
-        http_server.add_handler(path="/create_target", handler=http.create_target, method=HTTPMethod.GET)
+        http_server.add_handler(path="/addTarget", handler=http.add_target, method=HTTPMethod.POST)
 
     @inject
     async def start(
@@ -26,12 +26,12 @@ class APIService:
         logger: LoggerLike = Provide[Container.logger],
         http_server: HTTPServer = Provide[Container.http_server],
         metrics_server: MetricsServer = Provide[Container.metrics_server],
-        grpc_client: GRPCClient = Provide[Container.grpc_client],
+        crawler_client: GRPCClient = Provide[Container.crawler_client],
         trace_exporter: TraceExporter = Provide[Container.trace_exporter],
     ) -> None:
         logger.info("Starting the app...")
         running = asyncio.Event()
-        for component in (grpc_client, metrics_server, http_server, trace_exporter):
+        for component in (crawler_client, metrics_server, http_server, trace_exporter):
             await component.start()
         logger.info("The app has been started")
 
@@ -48,11 +48,11 @@ class APIService:
         logger: LoggerLike = Provide[Container.logger],
         http_server: HTTPServer = Provide[Container.http_server],
         metrics_server: MetricsServer = Provide[Container.metrics_server],
-        grpc_client: GRPCClient = Provide[Container.grpc_client],
+        crawler_client: GRPCClient = Provide[Container.crawler_client],
         trace_exporter: TraceExporter = Provide[Container.trace_exporter],
     ) -> None:
         logger.info("Stopping the app...")
-        for component in (grpc_client, metrics_server, http_server, trace_exporter):
+        for component in (crawler_client, metrics_server, http_server, trace_exporter):
             try:
                 await component.stop()
             except Exception as error:
@@ -63,22 +63,3 @@ class APIService:
                 )
 
         logger.info("The app has been stopped")
-
-
-# @asynccontextmanager
-# async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
-#     logger.info("Starting the application...")
-#     channel = grpc.aio.insecure_channel("localhost:50051")
-#     crawler_service = CrawlerServiceStub(channel)
-#     app.state.crawler_service = crawler_service
-
-#     yield
-
-#     await channel.close()
-#     logger.info("Application shutdown...")
-
-
-# @app.get("/{url}")
-# async def root(url: str) -> str:
-#     app.state.crawler_service.AddTarget(AddTargetRequest(target_url=url))
-#     return "OK"

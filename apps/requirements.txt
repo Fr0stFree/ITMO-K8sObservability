@@ -6,6 +6,8 @@ aiohttp==3.13.3
 dependency-injector==4.48.3
 sqlalchemy==2.0.46
 asyncpg==0.31.0
+pydantic
+pydantic_settings
 
 opentelemetry-api==1.39.1
 opentelemetry-sdk==1.39.1

@@ -13,24 +13,8 @@ class Container(containers.DeclarativeContainer):
     settings = providers.Configuration()
 
     logger = providers.Singleton(new_logger, config=LOGGING_CONFIG, name="APIService")
-    http_server = providers.Singleton(
-        HTTPServer,
-        settings=HTTPServerSettings(),
-        logger=logger,
-    )
-    metrics_server = providers.Singleton(
-        MetricsServer,
-        settings=MetricsServerSettings(),
-        logger=logger,
-    )
-    grpc_client = providers.Singleton(
-        GRPCClient,
-        settings=GRPCClientSettings(),
-        stub_class=CrawlerServiceStub,
-        logger=logger,
-    )
-    trace_exporter = providers.Singleton(
-        TraceExporter,
-        settings=TraceExporterSettings(),
-        logger=logger,
-    )
+    http_server = providers.Singleton(HTTPServer, settings=HTTPServerSettings(), logger=logger)
+    metrics_server = providers.Singleton(MetricsServer, settings=MetricsServerSettings(), logger=logger)
+    trace_exporter = providers.Singleton(TraceExporter, settings=TraceExporterSettings(), logger=logger)
+    crawler_client = providers.Singleton(GRPCClient, settings=GRPCClientSettings(), logger=logger)
+    crawler_stub = providers.Factory(CrawlerServiceStub, channel=crawler_client.provided.channel)

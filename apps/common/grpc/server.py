@@ -8,7 +8,6 @@ from common.logs.logger import LoggerLike
 
 type IServicer = object
 
-
 class IServicerRegisterer(Protocol):
     def __call__(self, servicer: IServicer, server: Server) -> None: ...
 
@@ -32,6 +31,7 @@ class GRPCServer:
         self._server = server(ThreadPoolExecutor(max_workers=self._settings.workers_amount))
         self._registerer(self._servicer, self._server)
         self._server.add_insecure_port(f"[::]:{self._settings.port}")
+        await self._server.start()
 
     async def stop(self) -> None:
         self._logger.info("Shutting down the grpc server...")
