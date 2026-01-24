@@ -1,8 +1,8 @@
 from pydantic_settings import BaseSettings
-
+from pydantic import Field
 
 class TraceExporterSettings(BaseSettings):
-    service_name: str = "monitoring-service"
-    otlp_endpoint: str = "http://localhost:4317"
-    protocol: str = "grpc"
-    enabled: bool = True
+    service_name: str = Field("monitoring-service", alias="TRACE_EXPORTER_SERVICE_NAME")
+    otlp_endpoint: str = Field("http://localhost:4317", alias="TRACE_EXPORTER_OTLP_ENDPOINT")
+    protocol: str = Field("grpc", alias="TRACE_EXPORTER_PROTOCOL")
+    enabled: bool = Field(True, alias="TRACE_EXPORTER_ENABLED")

@@ -52,8 +52,7 @@ async def create_target(
     logger: LoggerLike = Provide[Container.logger],
     grpc_client: GRPCClient = Provide[Container.grpc_client],
 ) -> Response:
-    # request_data = await request.json()
     logger.info("Received create target request")
-    service: CrawlerService = grpc_client.service
-    service.AddTarget(request=AddTargetRequest(target_url="http://example.com"))
+    service: CrawlerService = grpc_client.stub
+    await service.AddTarget(request=AddTargetRequest(target_url="http://example.com"))
     return Response(text="Target creation request sent", status=HTTPStatus.OK)

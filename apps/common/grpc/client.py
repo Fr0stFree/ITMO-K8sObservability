@@ -13,12 +13,12 @@ class GRPCClient:
         self._channel: Channel
 
     @property
-    def service(self) -> object:
+    def stub(self) -> object:
         return self._stub
 
     async def start(self) -> None:
-        self._logger.info("Creating gRPC channel to %s...", self._settings.target)
-        self._channel = insecure_channel(self._settings.target)
+        self._logger.info("Creating gRPC channel to %s...", self._settings.address)
+        self._channel = insecure_channel(self._settings.address)
         self._stub = self._stub_class(self._channel)
 
     async def stop(self) -> None:
