@@ -5,4 +5,5 @@ from pydantic_settings import BaseSettings
 
 class CrawlerServiceSettings(BaseSettings):
     service_name: str = "CrawlerService"
+    concurrent_crawlers: int = 1
     health_check_timeout: dt.timedelta = dt.timedelta(seconds=2)

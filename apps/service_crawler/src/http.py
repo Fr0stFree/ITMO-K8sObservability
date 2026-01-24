@@ -1,8 +1,10 @@
-import asyncio
 import datetime as dt
 from http import HTTPStatus
 
 from aiohttp.web import Request, Response, json_response
+from common.utils.health import check_health
+from service_crawler.src.url_crawler import CrawlerPool
+from service_crawler.src.url_dumper import URLDumper
 from dependency_injector.wiring import Provide, inject
 
 from common.databases.postgres import PostgresClient
@@ -21,26 +23,22 @@ async def health(
     http_server: HTTPServer = Provide[Container.http_server],
     metrics_server: MetricsServer = Provide[Container.metrics_server],
     grpc_server: GRPCServer = Provide[Container.grpc_server],
-    db_client: PostgresClient = Provide[Container.db_client],
+    crawler_pool: CrawlerPool = Provide[Container.crawler_pool],
+    dumper: URLDumper = Provide[Container.dumper],
 ) -> Response:
-    components = (http_server, metrics_server, grpc_server, db_client)
-    checks = {component.__class__.__name__: component.is_healthy() for component in components}
-    results = await asyncio.wait_for(
-        asyncio.gather(*checks.values(), return_exceptions=True),
-        timeout=health_check_timeout.total_seconds(),
+    result = await check_health(
+        http_server,
+        metrics_server,
+        grpc_server,
+        crawler_pool,
+        dumper,
+        timeout=health_check_timeout,
     )
+    logger.info("Health check result: %s", ", ".join(f"{k.__class__.__name__}: {v}" for k, v in result.items()))
 
-    body, alive, dead = {}, [], []
-    for name, result in zip(checks.keys(), results):
-        is_alive = False if isinstance(result, Exception) else result
-        body[name] = is_alive
-        if is_alive:
-            alive.append(name)
-        else:
-            dead.append(name)
+    if all(result.values()):
+        return json_response(status=HTTPStatus.OK)
 
-    logger.info("Health check result - alive: %s. dead: %s.", ", ".join(alive), ", ".join(dead))
-    if not dead:
-        return json_response(body, status=HTTPStatus.OK)
+    return json_response(status=HTTPStatus.GATEWAY_TIMEOUT)
 
-    return json_response(body, status=HTTPStatus.GATEWAY_TIMEOUT)
+

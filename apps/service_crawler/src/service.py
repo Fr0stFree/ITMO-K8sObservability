@@ -2,6 +2,8 @@ import asyncio
 from http import HTTPMethod
 import signal
 
+from service_crawler.src.url_crawler import CrawlerPool
+from service_crawler.src.url_dumper import URLDumper
 from dependency_injector.wiring import Provide, inject
 
 from common.grpc import GRPCServer
@@ -27,10 +29,12 @@ class CrawlerService:
         metrics_server: MetricsServer = Provide[Container.metrics_server],
         grpc_server: GRPCServer = Provide[Container.grpc_server],
         trace_exporter: TraceExporter = Provide[Container.trace_exporter],
+        crawler_pool: CrawlerPool = Provide[Container.crawler_pool],
+        dumper: URLDumper = Provide[Container.dumper],
     ) -> None:
         logger.info("Starting the app...")
         running = asyncio.Event()
-        for component in (grpc_server, metrics_server, http_server, trace_exporter):
+        for component in (grpc_server, metrics_server, http_server, trace_exporter, crawler_pool, dumper):
             await component.start()
         logger.info("The app has been started")
 
@@ -49,9 +53,11 @@ class CrawlerService:
         metrics_server: MetricsServer = Provide[Container.metrics_server],
         grpc_server: GRPCServer = Provide[Container.grpc_server],
         trace_exporter: TraceExporter = Provide[Container.trace_exporter],
+        crawler_pool: CrawlerPool = Provide[Container.crawler_pool],
+        dumper: URLDumper = Provide[Container.dumper],
     ) -> None:
         logger.info("Stopping the app...")
-        for component in (grpc_server, metrics_server, http_server, trace_exporter):
+        for component in (grpc_server, metrics_server, http_server, trace_exporter, crawler_pool, dumper):
             try:
                 await component.stop()
             except Exception as error:
