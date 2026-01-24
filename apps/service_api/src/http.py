@@ -10,6 +10,7 @@ from common.grpc import GRPCClient
 from common.http import HTTPServer
 from common.logs import LoggerLike
 from common.metrics import MetricsServer
+from common.tracing.exporter import TraceExporter
 from common.utils.health import check_health
 from protocol.analyzer_pb2 import GetTargetDetailsRequest
 from protocol.analyzer_pb2_grpc import AnalyzerServiceStub
@@ -25,12 +26,16 @@ async def health(
     logger: LoggerLike = Provide[Container.logger],
     http_server: HTTPServer = Provide[Container.http_server],
     metrics_server: MetricsServer = Provide[Container.metrics_server],
+    trace_exporter: TraceExporter = Provide[Container.trace_exporter],
     crawler_client: GRPCClient = Provide[Container.crawler_client],
+    analyzer_client: GRPCClient = Provide[Container.analyzer_client],
 ) -> Response:
     result = await check_health(
         http_server,
         metrics_server,
         crawler_client,
+        analyzer_client,
+        trace_exporter,
         timeout=health_check_timeout,
     )
     logger.info("Health check result: %s", result)
@@ -61,7 +66,7 @@ async def add_target(
 
 
 @inject
-async def target_details(
+async def get_target(
     request: Request,
     analyzer_stub: AnalyzerServiceStub = Provide[Container.analyzer_stub],
 ) -> Response:
@@ -73,3 +78,13 @@ async def target_details(
     rpc_response = await analyzer_stub.GetTargetDetails(rpc_request)
     response_body = MessageToDict(rpc_response, preserving_proto_field_name=True)
     return json_response(response_body, status=HTTPStatus.OK)
+
+
+@inject
+async def list_targets(request: Request) -> Response:
+    raise NotImplementedError("Not implemented yet")
+
+
+@inject
+async def delete_target(request: Request) -> Response:
+    raise NotImplementedError("Not implemented yet")

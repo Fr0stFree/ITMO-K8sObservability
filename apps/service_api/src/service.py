@@ -19,7 +19,9 @@ class APIService:
     def __init__(self, http_server: HTTPServer = Provide[Container.http_server]) -> None:
         http_server.add_handler(path="/health", handler=http.health, method=HTTPMethod.GET)
         http_server.add_handler(path="/targets", handler=http.add_target, method=HTTPMethod.POST)
-        http_server.add_handler(path="/targets/{target_id}", handler=http.target_details, method=HTTPMethod.GET)
+        http_server.add_handler(path="/targets/{target_id}", handler=http.get_target, method=HTTPMethod.GET)
+        http_server.add_handler(path="/targets", handler=http.list_targets, method=HTTPMethod.GET)
+        http_server.add_handler(path="/targets/{target_id}", handler=http.delete_target, method=HTTPMethod.DELETE)
 
     @inject
     async def start(
