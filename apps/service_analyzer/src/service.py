@@ -1,4 +1,5 @@
 import asyncio
+import datetime as dt
 from http import HTTPMethod
 import signal
 
@@ -10,6 +11,7 @@ from common.http import HTTPServer
 from common.logs import LoggerLike
 from common.metrics import MetricsServer
 from common.tracing import TraceExporter
+from common.utils.health import check_health
 from service_analyzer.src import http
 from service_analyzer.src.container import Container
 
@@ -18,7 +20,9 @@ class AnalyzerService:
 
     @inject
     def __init__(self, http_server: HTTPServer = Provide[Container.http_server]) -> None:
-        http_server.add_handler(path="/health", handler=http.health, method=HTTPMethod.GET)
+        http_server.add_handler(
+            path="/health", handler=lambda request: http.health(request, self.is_healthy), method=HTTPMethod.GET
+        )
 
     @inject
     async def start(
@@ -42,6 +46,31 @@ class AnalyzerService:
 
         await running.wait()
         await self.stop()
+
+    @inject
+    async def is_healthy(
+        self,
+        health_check_timeout: dt.timedelta = Provide[Container.settings.health_check_timeout],
+        logger: LoggerLike = Provide[Container.logger],
+        http_server: HTTPServer = Provide[Container.http_server],
+        metrics_server: MetricsServer = Provide[Container.metrics_server],
+        grpc_server: GRPCClient = Provide[Container.grpc_server],
+        trace_exporter: TraceExporter = Provide[Container.trace_exporter],
+        db_client: PostgresClient = Provide[Container.db_client],
+    ) -> bool:
+        result = await check_health(
+            http_server,
+            metrics_server,
+            grpc_server,
+            trace_exporter,
+            db_client,
+            timeout=health_check_timeout,
+        )
+        logger.info(
+            "Health check result: %s",
+            ", ".join(f"{comp.__class__.__name__}: {status}" for comp, status in result.items()),
+        )
+        return all(result.values())
 
     @inject
     async def stop(
