@@ -6,7 +6,7 @@ from itertools import cycle
 
 from aiohttp import ClientSession
 
-from common.logs.logger import LoggerLike
+from common.logs import LoggerLike
 from service_crawler.src.crawling.models import CrawledURL
 
 

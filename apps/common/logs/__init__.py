@@ -1,1 +1,2 @@
-from .logger import LoggerLike, new_logger
+from .interface import LoggerLike
+from .logger import new_logger

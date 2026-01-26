@@ -5,11 +5,9 @@ import signal
 
 from dependency_injector.wiring import Provide, inject
 
-from common.grpc import GRPCClient
-from common.http import HTTPServer
+from common.http.interface import IHTTPServer
 from common.logs import LoggerLike
-from common.metrics import MetricsServer
-from common.tracing import TraceExporter
+from common.types.interface import IHealthCheck, ILifeCycle
 from common.utils.health import check_health
 from service_api.src import http
 from service_api.src.container import Container
@@ -18,7 +16,7 @@ from service_api.src.container import Container
 class APIService:
 
     @inject
-    def __init__(self, http_server: HTTPServer = Provide[Container.http_server]) -> None:
+    def __init__(self, http_server: IHTTPServer = Provide[Container.http_server]) -> None:
         http_server.add_handler(
             path="/health", handler=lambda request: http.health(request, self.is_healthy), method=HTTPMethod.GET
         )
@@ -31,11 +29,11 @@ class APIService:
     async def start(
         self,
         logger: LoggerLike = Provide[Container.logger],
-        http_server: HTTPServer = Provide[Container.http_server],
-        metrics_server: MetricsServer = Provide[Container.metrics_server],
-        trace_exporter: TraceExporter = Provide[Container.trace_exporter],
-        crawler_client: GRPCClient = Provide[Container.crawler_client],
-        analyzer_client: GRPCClient = Provide[Container.analyzer_client],
+        http_server: ILifeCycle = Provide[Container.http_server],
+        metrics_server: ILifeCycle = Provide[Container.metrics_server],
+        trace_exporter: ILifeCycle = Provide[Container.trace_exporter],
+        crawler_client: ILifeCycle = Provide[Container.crawler_client],
+        analyzer_client: ILifeCycle = Provide[Container.analyzer_client],
     ) -> None:
         logger.info("Starting the app...")
         running = asyncio.Event()
@@ -55,11 +53,11 @@ class APIService:
         self,
         health_check_timeout: dt.timedelta = Provide[Container.settings.health_check_timeout],
         logger: LoggerLike = Provide[Container.logger],
-        http_server: HTTPServer = Provide[Container.http_server],
-        metrics_server: MetricsServer = Provide[Container.metrics_server],
-        trace_exporter: TraceExporter = Provide[Container.trace_exporter],
-        crawler_client: GRPCClient = Provide[Container.crawler_client],
-        analyzer_client: GRPCClient = Provide[Container.analyzer_client],
+        http_server: IHealthCheck = Provide[Container.http_server],
+        metrics_server: IHealthCheck = Provide[Container.metrics_server],
+        trace_exporter: IHealthCheck = Provide[Container.trace_exporter],
+        crawler_client: IHealthCheck = Provide[Container.crawler_client],
+        analyzer_client: IHealthCheck = Provide[Container.analyzer_client],
     ) -> bool:
         result = await check_health(
             http_server,
@@ -79,11 +77,11 @@ class APIService:
     async def stop(
         self,
         logger: LoggerLike = Provide[Container.logger],
-        http_server: HTTPServer = Provide[Container.http_server],
-        metrics_server: MetricsServer = Provide[Container.metrics_server],
-        trace_exporter: TraceExporter = Provide[Container.trace_exporter],
-        crawler_client: GRPCClient = Provide[Container.crawler_client],
-        analyzer_client: GRPCClient = Provide[Container.analyzer_client],
+        http_server: ILifeCycle = Provide[Container.http_server],
+        metrics_server: ILifeCycle = Provide[Container.metrics_server],
+        trace_exporter: ILifeCycle = Provide[Container.trace_exporter],
+        crawler_client: ILifeCycle = Provide[Container.crawler_client],
+        analyzer_client: ILifeCycle = Provide[Container.analyzer_client],
     ) -> None:
         logger.info("Stopping the app...")
         for component in (crawler_client, analyzer_client, metrics_server, http_server, trace_exporter):

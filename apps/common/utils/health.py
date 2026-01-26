@@ -1,7 +1,7 @@
 import asyncio
 import datetime as dt
 
-from common.types.protocol import IHealthCheck
+from common.types.interface import IHealthCheck
 
 
 async def check_health(*components: IHealthCheck, timeout: dt.timedelta) -> dict[IHealthCheck, bool]:

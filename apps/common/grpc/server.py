@@ -4,7 +4,7 @@ from typing import Protocol
 from grpc.aio import Server, server
 
 from common.grpc.settings import GRPCServerSettings
-from common.logs.logger import LoggerLike
+from common.logs import LoggerLike
 
 type IServicer = object
 

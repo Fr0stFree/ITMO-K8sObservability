@@ -5,21 +5,18 @@ import signal
 
 from dependency_injector.wiring import Provide, inject
 
-from common.grpc import GRPCServer
-from common.http import HTTPServer
+from common.http.interface import IHTTPServer
 from common.logs import LoggerLike
-from common.metrics import MetricsServer
-from common.tracing import TraceExporter
+from common.types.interface import IHealthCheck, ILifeCycle
 from common.utils.health import check_health
 from service_crawler.src import http
 from service_crawler.src.container import Container
-from service_crawler.src.crawling import CrawlingPipeline
 
 
 class CrawlerService:
 
     @inject
-    def __init__(self, http_server: HTTPServer = Provide[Container.http_server]) -> None:
+    def __init__(self, http_server: IHTTPServer = Provide[Container.http_server]) -> None:
         http_server.add_handler(
             path="/health", handler=lambda request: http.health(request, self.is_healthy), method=HTTPMethod.GET
         )
@@ -28,15 +25,16 @@ class CrawlerService:
     async def start(
         self,
         logger: LoggerLike = Provide[Container.logger],
-        http_server: HTTPServer = Provide[Container.http_server],
-        metrics_server: MetricsServer = Provide[Container.metrics_server],
-        grpc_server: GRPCServer = Provide[Container.grpc_server],
-        trace_exporter: TraceExporter = Provide[Container.trace_exporter],
-        pipeline: CrawlingPipeline = Provide[Container.crawling_pipeline],
+        http_server: ILifeCycle = Provide[Container.http_server],
+        metrics_server: ILifeCycle = Provide[Container.metrics_server],
+        grpc_server: ILifeCycle = Provide[Container.grpc_server],
+        trace_exporter: ILifeCycle = Provide[Container.trace_exporter],
+        broker_producer: ILifeCycle = Provide[Container.broker_producer],
+        pipeline: ILifeCycle = Provide[Container.crawling_pipeline],
     ) -> None:
         logger.info("Starting the app...")
         running = asyncio.Event()
-        for component in (grpc_server, metrics_server, http_server, trace_exporter, pipeline):
+        for component in (grpc_server, metrics_server, http_server, trace_exporter, pipeline, broker_producer):
             await component.start()
         logger.info("The app has been started")
 
@@ -52,17 +50,19 @@ class CrawlerService:
         self,
         health_check_timeout: dt.timedelta = Provide[Container.settings.health_check_timeout],
         logger: LoggerLike = Provide[Container.logger],
-        http_server: HTTPServer = Provide[Container.http_server],
-        metrics_server: MetricsServer = Provide[Container.metrics_server],
-        grpc_server: GRPCServer = Provide[Container.grpc_server],
-        trace_exporter: TraceExporter = Provide[Container.trace_exporter],
-        pipeline: CrawlingPipeline = Provide[Container.crawling_pipeline],
+        http_server: IHealthCheck = Provide[Container.http_server],
+        metrics_server: IHealthCheck = Provide[Container.metrics_server],
+        grpc_server: IHealthCheck = Provide[Container.grpc_server],
+        trace_exporter: IHealthCheck = Provide[Container.trace_exporter],
+        broker_producer: IHealthCheck = Provide[Container.broker_producer],
+        pipeline: IHealthCheck = Provide[Container.crawling_pipeline],
     ) -> bool:
         result = await check_health(
             http_server,
             metrics_server,
             grpc_server,
             trace_exporter,
+            broker_producer,
             pipeline,
             timeout=health_check_timeout,
         )
@@ -76,14 +76,15 @@ class CrawlerService:
     async def stop(
         self,
         logger: LoggerLike = Provide[Container.logger],
-        http_server: HTTPServer = Provide[Container.http_server],
-        metrics_server: MetricsServer = Provide[Container.metrics_server],
-        grpc_server: GRPCServer = Provide[Container.grpc_server],
-        trace_exporter: TraceExporter = Provide[Container.trace_exporter],
-        pipeline: CrawlingPipeline = Provide[Container.crawling_pipeline],
+        http_server: ILifeCycle = Provide[Container.http_server],
+        metrics_server: ILifeCycle = Provide[Container.metrics_server],
+        grpc_server: ILifeCycle = Provide[Container.grpc_server],
+        trace_exporter: ILifeCycle = Provide[Container.trace_exporter],
+        broker_producer: ILifeCycle = Provide[Container.broker_producer],
+        pipeline: ILifeCycle = Provide[Container.crawling_pipeline],
     ) -> None:
         logger.info("Stopping the app...")
-        for component in (grpc_server, metrics_server, http_server, trace_exporter, pipeline):
+        for component in (grpc_server, metrics_server, http_server, trace_exporter, pipeline, broker_producer):
             try:
                 await component.stop()
             except Exception as error:

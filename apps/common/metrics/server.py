@@ -1,14 +1,14 @@
-import logging
 from threading import Thread
 from wsgiref.simple_server import WSGIServer
 
 from prometheus_client import start_http_server
 
+from common.logs import LoggerLike
 from common.metrics.settings import MetricsServerSettings
 
 
 class MetricsServer:
-    def __init__(self, settings: MetricsServerSettings, logger: logging.Logger) -> None:
+    def __init__(self, settings: MetricsServerSettings, logger: LoggerLike) -> None:
         self._settings = settings
         self._logger = logger
 

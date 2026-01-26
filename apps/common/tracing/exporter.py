@@ -3,7 +3,7 @@ from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import ConsoleSpanExporter, SimpleSpanProcessor
 
-from common.logs.logger import LoggerLike
+from common.logs import LoggerLike
 from common.tracing.settings import TraceExporterSettings
 
 

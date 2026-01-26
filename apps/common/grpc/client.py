@@ -1,6 +1,6 @@
 from grpc.aio import Channel, insecure_channel
 
-from common.logs.logger import LoggerLike
+from common.logs import LoggerLike
 
 
 class GRPCClient:
@@ -9,10 +9,6 @@ class GRPCClient:
         self._logger = logger
 
         self._channel: Channel
-
-    @property
-    def channel(self) -> Channel:
-        return self._channel
 
     async def start(self) -> None:
         self._logger.info("Creating gRPC channel to %s...", self._address)

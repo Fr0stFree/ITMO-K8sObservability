@@ -3,6 +3,7 @@ python_json_logger==4.0.0
 grpcio-tools
 grpcio
 aiohttp==3.13.3
+iokafka==0.13.0
 dependency-injector==4.48.3
 sqlalchemy[asyncio]==2.0.46
 asyncpg==0.31.0

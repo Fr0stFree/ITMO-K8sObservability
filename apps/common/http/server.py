@@ -4,7 +4,7 @@ from http import HTTPMethod
 from aiohttp.web import Application, AppRunner, Request, Response, TCPSite
 
 from common.http.settings import HTTPServerSettings
-from common.logs.logger import LoggerLike
+from common.logs import LoggerLike
 
 type IHttpHandler = Callable[[Request], Awaitable[Response]]
 

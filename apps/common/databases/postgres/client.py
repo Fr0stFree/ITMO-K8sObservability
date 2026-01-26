@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
 from common.databases.postgres.settings import PostgresSettings
-from common.logs.logger import LoggerLike
+from common.logs import LoggerLike
 
 
 class PostgresClient:

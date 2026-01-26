@@ -1,21 +1,26 @@
 import asyncio
 from collections.abc import Sequence
+from contextlib import suppress
+from dataclasses import asdict
+import json
 
-from common.logs.logger import LoggerLike
-from service_crawler.src.crawling.handler import Handler
-from service_crawler.src.crawling.models import CrawledURL
+from common.brokers.interface import IBrokerProducer
+from common.logs import LoggerLike
 from service_crawler.src.crawling.worker import Worker
 
 
-async def callback(url: CrawledURL) -> None:
-    print(f"CRAWLED NEW URL - {url.url}:{url.status}")
-
-
 class CrawlingPipeline:
-    def __init__(self, urls: Sequence[str], logger: LoggerLike, concurrent_workers: int) -> None:
+    def __init__(
+        self,
+        urls: Sequence[str],
+        logger: LoggerLike,
+        concurrent_workers: int,
+        producer: IBrokerProducer,
+    ) -> None:
         self._logger = logger
         self._queue = asyncio.Queue(maxsize=100)
-        self._handler = Handler(self._queue, callback, logger)
+        self._processor: asyncio.Task | None = None
+        self._producer = producer
         self._workers = [
             Worker(
                 urls=list(urls[i : i + len(urls) // concurrent_workers]),
@@ -25,18 +30,30 @@ class CrawlingPipeline:
             for i in range(0, len(urls), len(urls) // concurrent_workers)
         ]
 
+    async def _process_urls(self) -> None:
+        while True:
+            crawled_url = await self._queue.get()
+            await self._producer.send(json.dumps(asdict(crawled_url)).encode("utf-8"))
+            self._queue.task_done()
+
     async def start(self) -> None:
         self._logger.info("Starting crawling pipeline with %d workers..", len(self._workers))
-        await self._handler.start()
+        self._processor = asyncio.create_task(self._process_urls())
         for worker in self._workers:
             await worker.start()
 
     async def stop(self) -> None:
         self._logger.info("Stopping crawling pipeline...")
         await asyncio.gather(*(worker.stop() for worker in self._workers))
-        await self._handler.stop()
+        if not self._processor:
+            return
+
+        self._processor.cancel()
+        with suppress(asyncio.CancelledError):
+            await self._processor
+        self._processor = None
 
     async def is_healthy(self) -> bool:
         workers = await asyncio.gather(*(worker.is_healthy() for worker in self._workers))
-        consumer = await self._handler.is_healthy()
-        return all(workers + [consumer])
+        processor = self._processor is not None and not self._processor.done()
+        return all(workers + [processor])
