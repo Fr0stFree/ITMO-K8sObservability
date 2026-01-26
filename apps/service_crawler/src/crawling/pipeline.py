@@ -29,7 +29,7 @@ class CrawlingPipeline:
         self._logger.info("Starting crawling pipeline with %d workers..", len(self._workers))
         await self._handler.start()
         for worker in self._workers:
-            asyncio.create_task(worker.start())
+            await worker.start()
 
     async def stop(self) -> None:
         self._logger.info("Stopping crawling pipeline...")
