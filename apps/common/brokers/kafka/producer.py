@@ -1,4 +1,4 @@
-from typing import Any
+import json
 from uuid import uuid4
 
 from aiokafka import AIOKafkaProducer
@@ -17,8 +17,11 @@ class KafkaProducer:
         self._settings = settings
         self._logger = logger
         self._client_id = f"{settings.client_prefix}-{uuid4().hex[:6]}"
-        # TODO: key, value serializers
-        self._producer = AIOKafkaProducer(bootstrap_servers=settings.address, client_id=self._client_id)
+        self._producer = AIOKafkaProducer(
+            bootstrap_servers=settings.address,
+            client_id=self._client_id,
+            value_serializer=lambda value: json.dumps(value).encode("utf-8"),
+        )
 
     async def start(self) -> None:
         self._logger.info(
@@ -37,5 +40,5 @@ class KafkaProducer:
         self._logger.info("Shutting down the kafka producer '%s'...", self._client_id)
         await self._producer.stop()
 
-    async def send(self, message: Any) -> None:
+    async def send(self, message: dict) -> None:
         await self._producer.send_and_wait(self._settings.topic, message)

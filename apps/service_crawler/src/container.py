@@ -1,13 +1,14 @@
 from dependency_injector import containers, providers
 
 from common.brokers.kafka import KafkaProducer, KafkaProducerSettings
+from common.databases.redis import RedisClient, RedisClientSettings
 from common.grpc import GRPCServer, GRPCServerSettings
 from common.http import HTTPServer, HTTPServerSettings
 from common.logs import new_logger
 from common.logs.settings import LOGGING_CONFIG
 from common.metrics import MetricsServer, MetricsServerSettings
 from common.tracing import TraceExporter, TraceExporterSettings
-from service_crawler.src.crawling.pipeline import CrawlingPipeline
+from service_crawler.src.crawling import CrawlingPipeline
 from service_crawler.src.rpc import RPCServicer
 
 
@@ -30,11 +31,12 @@ class Container(containers.DeclarativeContainer):
     )
     http_server = providers.Singleton(HTTPServer, settings=HTTPServerSettings(), logger=logger)
     broker_producer = providers.Singleton(KafkaProducer, settings=KafkaProducerSettings(), logger=logger)
+    db_client = providers.Singleton(RedisClient, settings=RedisClientSettings(), logger=logger)
 
     # domain
     crawling_pipeline = providers.Singleton(
         CrawlingPipeline,
-        urls=["http://wikipedia.org", "http://example.com", "http://nonexistent.baddomain"],
+        redis=db_client.provided.redis,
         concurrent_workers=settings.concurrent_workers,
         producer=broker_producer,
         logger=logger,

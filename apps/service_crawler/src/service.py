@@ -30,11 +30,20 @@ class CrawlerService:
         grpc_server: ILifeCycle = Provide[Container.grpc_server],
         trace_exporter: ILifeCycle = Provide[Container.trace_exporter],
         broker_producer: ILifeCycle = Provide[Container.broker_producer],
+        db_client: ILifeCycle = Provide[Container.db_client],
         pipeline: ILifeCycle = Provide[Container.crawling_pipeline],
     ) -> None:
         logger.info("Starting the app...")
         running = asyncio.Event()
-        for component in (grpc_server, metrics_server, http_server, trace_exporter, pipeline, broker_producer):
+        for component in (
+            grpc_server,
+            metrics_server,
+            http_server,
+            trace_exporter,
+            db_client,
+            broker_producer,
+            pipeline,
+        ):
             await component.start()
         logger.info("The app has been started")
 
@@ -55,6 +64,7 @@ class CrawlerService:
         grpc_server: IHealthCheck = Provide[Container.grpc_server],
         trace_exporter: IHealthCheck = Provide[Container.trace_exporter],
         broker_producer: IHealthCheck = Provide[Container.broker_producer],
+        db_client: IHealthCheck = Provide[Container.db_client],
         pipeline: IHealthCheck = Provide[Container.crawling_pipeline],
     ) -> bool:
         result = await check_health(
@@ -64,6 +74,7 @@ class CrawlerService:
             trace_exporter,
             broker_producer,
             pipeline,
+            db_client,
             timeout=health_check_timeout,
         )
         logger.info(
@@ -81,10 +92,19 @@ class CrawlerService:
         grpc_server: ILifeCycle = Provide[Container.grpc_server],
         trace_exporter: ILifeCycle = Provide[Container.trace_exporter],
         broker_producer: ILifeCycle = Provide[Container.broker_producer],
+        db_client: ILifeCycle = Provide[Container.db_client],
         pipeline: ILifeCycle = Provide[Container.crawling_pipeline],
     ) -> None:
         logger.info("Stopping the app...")
-        for component in (grpc_server, metrics_server, http_server, trace_exporter, pipeline, broker_producer):
+        for component in (
+            grpc_server,
+            metrics_server,
+            http_server,
+            trace_exporter,
+            pipeline,
+            broker_producer,
+            db_client,
+        ):
             try:
                 await component.stop()
             except Exception as error:

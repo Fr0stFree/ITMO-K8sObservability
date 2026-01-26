@@ -1,5 +1,2 @@
-from aiokafka import ConsumerRecord
-
-
-async def on_new_message(record: ConsumerRecord) -> None:
-    print(f"got message: {record.value}")
+async def on_new_message(message: dict) -> None:
+    print(f"got message: {message}")

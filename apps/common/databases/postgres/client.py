@@ -20,7 +20,7 @@ class PostgresClient:
         self._async_session = sessionmaker(self._engine, class_=AsyncSession, expire_on_commit=False)
 
     async def start(self) -> None:
-        self._logger.info("Connecting to db on %s:%s...", self._settings.host, self._settings.port)
+        self._logger.info("Connecting to postgres on %s:%s...", self._settings.host, self._settings.port)
         async with self._engine.connect() as conn:
             await conn.execute(text("SELECT 1"))
 

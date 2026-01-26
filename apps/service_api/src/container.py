@@ -14,7 +14,7 @@ class Container(containers.DeclarativeContainer):
     settings = providers.Configuration()
 
     # observability
-    logger = providers.Singleton(new_logger, config=LOGGING_CONFIG, name="APIService")
+    logger = providers.Singleton(new_logger, config=LOGGING_CONFIG, name=settings.service_name)
     metrics_server = providers.Singleton(MetricsServer, settings=MetricsServerSettings(), logger=logger)
     trace_exporter = providers.Singleton(TraceExporter, settings=TraceExporterSettings(), logger=logger)
 

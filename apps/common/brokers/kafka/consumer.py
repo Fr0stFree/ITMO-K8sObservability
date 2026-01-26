@@ -1,8 +1,9 @@
 import asyncio
 from collections.abc import Awaitable, Callable
+import json
 from uuid import uuid4
 
-from aiokafka import AIOKafkaConsumer, ConsumerRecord
+from aiokafka import AIOKafkaConsumer
 
 from common.brokers.kafka.settings import KafkaConsumerSettings
 from common.logs import LoggerLike
@@ -13,11 +14,17 @@ class KafkaConsumer:
         self._settings = settings
         self._logger = logger
         self._client_id = f"{settings.client_prefix}-{uuid4().hex[:6]}"
-        self._consumer = AIOKafkaConsumer(settings.topic, client_id=self._client_id, group_id=settings.group)
+        self._consumer = AIOKafkaConsumer(
+            settings.topic,
+            client_id=self._client_id,
+            group_id=settings.group,
+            bootstrap_servers=settings.address,
+            value_deserializer=lambda value: json.loads(value.decode("utf-8")),
+        )
         self._processor: asyncio.Task | None = None
-        self._on_message: Callable[[ConsumerRecord], Awaitable[None]] | None = None
+        self._on_message: Callable[[dict], Awaitable[None]] | None = None
 
-    def set_message_handler(self, on_message: Callable[[ConsumerRecord], Awaitable[None]]) -> None:
+    def set_message_handler(self, on_message: Callable[[dict], Awaitable[None]]) -> None:
         self._on_message = on_message
 
     async def start(self) -> None:
@@ -38,13 +45,14 @@ class KafkaConsumer:
             raise ValueError("Consumer message handler is not set")
 
         async for message in self._consumer:
-            await self._on_message(message)
+            await self._on_message(message.value)
 
     async def is_healthy(self) -> bool:
         await self._consumer.topics()
-        # TODO: process task
+        if self._processor is None or self._processor.done():
+            return False
         return True
 
     async def stop(self) -> None:
-        self._logger.info("Shutting down the consumer producer '%s'...", self._client_id)
+        self._logger.info("Shutting down the kafka consumer '%s'...", self._client_id)
         await self._consumer.stop()
