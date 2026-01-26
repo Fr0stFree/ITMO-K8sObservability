@@ -5,7 +5,7 @@ import signal
 
 from dependency_injector.wiring import Provide, inject
 
-from common.http.interface import IHTTPServer
+from common.http import IHTTPServer
 from common.logs import LoggerLike
 from common.types.interface import IHealthCheck, ILifeCycle
 from common.utils.health import check_health

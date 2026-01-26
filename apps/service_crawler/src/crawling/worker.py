@@ -33,14 +33,14 @@ class Worker:
                 result = CrawledURL(
                     url=url,
                     status="UP" if response.status < 400 else "DOWN",
-                    updated_at=dt.datetime.now(tz=dt.UTC),
+                    updated_at=dt.datetime.now(tz=dt.UTC).isoformat(),
                 )
         except Exception as error:
             self._logger.error("Error while crawling URL '%s': %s", url, error)
             result = CrawledURL(
                 url=url,
                 status="DOWN",
-                updated_at=dt.datetime.now(tz=dt.UTC),
+                updated_at=dt.datetime.now(tz=dt.UTC).isoformat(),
             )
 
         await asyncio.sleep(1)  # TODO: remove

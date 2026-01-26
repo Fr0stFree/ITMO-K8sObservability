@@ -5,21 +5,27 @@ import signal
 
 from dependency_injector.wiring import Provide, inject
 
-from common.http.interface import IHTTPServer
+from common.brokers.interface import IBrokerConsumer
+from common.http import IHTTPServer
 from common.logs import LoggerLike
 from common.types.interface import IHealthCheck, ILifeCycle
 from common.utils.health import check_health
-from service_analyzer.src import http
+from service_analyzer.src import broker, http
 from service_analyzer.src.container import Container
 
 
 class AnalyzerService:
 
     @inject
-    def __init__(self, http_server: IHTTPServer = Provide[Container.http_server]) -> None:
+    def __init__(
+        self,
+        http_server: IHTTPServer = Provide[Container.http_server],
+        broker_consumer: IBrokerConsumer = Provide[Container.broker_consumer],
+    ) -> None:
         http_server.add_handler(
             path="/health", handler=lambda request: http.health(request, self.is_healthy), method=HTTPMethod.GET
         )
+        broker_consumer.set_message_handler(broker.on_new_message)
 
     @inject
     async def start(
@@ -30,10 +36,11 @@ class AnalyzerService:
         grpc_server: ILifeCycle = Provide[Container.grpc_server],
         trace_exporter: ILifeCycle = Provide[Container.trace_exporter],
         db_client: ILifeCycle = Provide[Container.db_client],
+        broker_consumer: ILifeCycle = Provide[Container.broker_consumer],
     ) -> None:
         logger.info("Starting the app...")
         running = asyncio.Event()
-        for component in (grpc_server, db_client, metrics_server, http_server, trace_exporter):
+        for component in (grpc_server, db_client, metrics_server, http_server, trace_exporter, broker_consumer):
             await component.start()
         logger.info("The app has been started")
 
@@ -54,6 +61,7 @@ class AnalyzerService:
         grpc_server: IHealthCheck = Provide[Container.grpc_server],
         trace_exporter: IHealthCheck = Provide[Container.trace_exporter],
         db_client: IHealthCheck = Provide[Container.db_client],
+        broker_consumer: IHealthCheck = Provide[Container.broker_consumer],
     ) -> bool:
         result = await check_health(
             http_server,
@@ -61,6 +69,7 @@ class AnalyzerService:
             grpc_server,
             trace_exporter,
             db_client,
+            broker_consumer,
             timeout=health_check_timeout,
         )
         logger.info(
@@ -78,9 +87,10 @@ class AnalyzerService:
         grpc_server: ILifeCycle = Provide[Container.grpc_server],
         trace_exporter: ILifeCycle = Provide[Container.trace_exporter],
         db_client: ILifeCycle = Provide[Container.db_client],
+        broker_consumer: ILifeCycle = Provide[Container.broker_consumer],
     ) -> None:
         logger.info("Stopping the app...")
-        for component in (grpc_server, db_client, metrics_server, http_server, trace_exporter):
+        for component in (broker_consumer, grpc_server, db_client, metrics_server, http_server, trace_exporter):
             try:
                 await component.stop()
             except Exception as error:

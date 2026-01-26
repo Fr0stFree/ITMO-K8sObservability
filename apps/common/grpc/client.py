@@ -10,6 +10,10 @@ class GRPCClient:
 
         self._channel: Channel
 
+    @property
+    def channel(self) -> Channel:
+        return self._channel
+
     async def start(self) -> None:
         self._logger.info("Creating gRPC channel to %s...", self._address)
         self._channel = insecure_channel(self._address)

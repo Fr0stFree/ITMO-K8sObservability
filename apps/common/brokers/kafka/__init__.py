@@ -1,2 +1,3 @@
+from .consumer import KafkaConsumer
 from .producer import KafkaProducer
-from .settings import KafkaProducerSettings
+from .settings import KafkaConsumerSettings, KafkaProducerSettings

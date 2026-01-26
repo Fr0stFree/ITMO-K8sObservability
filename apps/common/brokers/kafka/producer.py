@@ -16,7 +16,7 @@ class KafkaProducer:
     ) -> None:
         self._settings = settings
         self._logger = logger
-        self._client_id = f"{self._settings.client_prefix}-{uuid4().hex[:6]}"
+        self._client_id = f"{settings.client_prefix}-{uuid4().hex[:6]}"
         # TODO: key, value serializers
         self._producer = AIOKafkaProducer(bootstrap_servers=settings.address, client_id=self._client_id)
 

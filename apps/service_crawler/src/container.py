@@ -31,7 +31,7 @@ class Container(containers.DeclarativeContainer):
     http_server = providers.Singleton(HTTPServer, settings=HTTPServerSettings(), logger=logger)
     broker_producer = providers.Singleton(KafkaProducer, settings=KafkaProducerSettings(), logger=logger)
 
-    # domain logic
+    # domain
     crawling_pipeline = providers.Singleton(
         CrawlingPipeline,
         urls=["http://wikipedia.org", "http://example.com", "http://nonexistent.baddomain"],

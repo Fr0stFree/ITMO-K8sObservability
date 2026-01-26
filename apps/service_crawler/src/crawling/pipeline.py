@@ -33,11 +33,12 @@ class CrawlingPipeline:
     async def _process_urls(self) -> None:
         while True:
             crawled_url = await self._queue.get()
-            await self._producer.send(json.dumps(asdict(crawled_url)).encode("utf-8"))
+            message = json.dumps(asdict(crawled_url)).encode("utf-8")
+            await self._producer.send(message)
             self._queue.task_done()
 
     async def start(self) -> None:
-        self._logger.info("Starting crawling pipeline with %d workers..", len(self._workers))
+        self._logger.info("Starting crawling pipeline with %d worker(s)...", len(self._workers))
         self._processor = asyncio.create_task(self._process_urls())
         for worker in self._workers:
             await worker.start()
