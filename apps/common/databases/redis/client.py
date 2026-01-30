@@ -10,11 +10,7 @@ class RedisClient:
     def __init__(self, settings: RedisClientSettings, logger: LoggerLike) -> None:
         self._settings = settings
         self._logger = logger
-        self._client = Redis.from_url(
-            settings.dsn,
-            db=settings.db,
-            decode_responses=settings.decode_responses,
-        )
+        self._client = Redis.from_url(settings.dsn, db=settings.db, decode_responses=True)
 
     async def start(self) -> None:
         self._logger.info("Connecting to redis at %s:%s...", self._settings.host, self._settings.port)

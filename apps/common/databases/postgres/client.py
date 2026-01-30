@@ -38,5 +38,9 @@ class PostgresClient:
 
     async def get_session(self) -> AsyncGenerator[AsyncSession, None]:
         async with self._async_session() as session:
-            yield session
-            await session.commit()
+            try:
+                yield session
+                await session.commit()
+            except Exception as error:
+                await session.rollback()
+                raise error

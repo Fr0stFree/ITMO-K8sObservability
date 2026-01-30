@@ -4,8 +4,7 @@ from common.brokers.kafka import KafkaProducer, KafkaProducerSettings
 from common.databases.redis import RedisClient, RedisClientSettings
 from common.grpc import GRPCServer, GRPCServerSettings
 from common.http import HTTPServer, HTTPServerSettings
-from common.logs import new_logger
-from common.logs.settings import LOGGING_CONFIG
+from common.logs import new_logger, LoggingSettings
 from common.metrics import MetricsServer, MetricsServerSettings
 from common.tracing import TraceExporter, TraceExporterSettings
 from service_crawler.src.crawling import CrawlingPipeline
@@ -16,7 +15,7 @@ class Container(containers.DeclarativeContainer):
     settings = providers.Configuration()
 
     # observability
-    logger = providers.Singleton(new_logger, config=LOGGING_CONFIG, name=settings.service_name)
+    logger = providers.Singleton(new_logger, settings=LoggingSettings(name="crawler-service"))
     metrics_server = providers.Singleton(MetricsServer, settings=MetricsServerSettings(), logger=logger)
     trace_exporter = providers.Singleton(TraceExporter, settings=TraceExporterSettings(), logger=logger)
 

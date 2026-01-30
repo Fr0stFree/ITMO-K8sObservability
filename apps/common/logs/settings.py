@@ -1,18 +1,12 @@
-LOGGING_CONFIG = {
-    "version": 1,
-    "disable_existing_loggers": False,
-    "formatters": {
-        "json": {
-            "()": "pythonjsonlogger.jsonlogger.JsonFormatter",
-            "fmt": "%(asctime)s %(levelname)s %(name)s %(message)s",
-        }
-    },
-    "handlers": {
-        "console": {
-            "class": "logging.StreamHandler",
-            "formatter": "json",
-            "level": "INFO",
-        }
-    },
-    "root": {"handlers": ["console"], "level": "INFO"},
-}
+import logging
+
+from pydantic import ConfigDict, Field
+from pydantic_settings import BaseSettings
+
+
+class LoggingSettings(BaseSettings):
+    name: str = Field(..., alias="LOG_NAME")
+    level: int = Field(logging.INFO, alias="LOG_LEVEL")
+    format: str = Field("%(asctime)s - %(name)s - %(levelname)s - %(message)s", alias="LOG_FORMAT")
+
+    model_config = ConfigDict(populate_by_name=True)
