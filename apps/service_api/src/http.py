@@ -31,9 +31,9 @@ async def add_target(
     except JSONDecodeError:
         return Response(text="Invalid JSON body", status=HTTPStatus.BAD_REQUEST)
 
-    target_url = body.get("target_url")
+    target_url = body.get("targetUrl")
     if not target_url:
-        return Response(text="missing target_url field", status=HTTPStatus.BAD_REQUEST)
+        return Response(text="missing targetUrl field", status=HTTPStatus.BAD_REQUEST)
 
     rpc_request = AddTargetRequest(target_url=target_url)
     await crawler_stub.AddTarget(rpc_request)
@@ -47,7 +47,7 @@ async def get_target(
 ) -> Response:
     target_id = request.match_info.get("target_id")
     if not target_id:
-        return Response(text="missing target_id in path", status=HTTPStatus.BAD_REQUEST)
+        return Response(text="missing url id in path", status=HTTPStatus.BAD_REQUEST)
 
     rpc_request = GetTargetDetailsRequest(id=target_id)
     rpc_response = await analyzer_stub.GetTargetDetails(rpc_request)

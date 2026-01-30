@@ -2,7 +2,7 @@ from dependency_injector import containers, providers
 
 from common.grpc import GRPCClient
 from common.http import HTTPServer, HTTPServerSettings
-from common.logs import new_logger, LoggingSettings
+from common.logs import LoggingSettings, new_logger
 from common.metrics import MetricsServer, MetricsServerSettings
 from common.tracing import TraceExporter, TraceExporterSettings
 from protocol.analyzer_pb2_grpc import AnalyzerServiceStub

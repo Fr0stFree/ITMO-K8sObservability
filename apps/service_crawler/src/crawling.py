@@ -1,65 +1,86 @@
 import asyncio
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 from contextlib import suppress
 from dataclasses import asdict, dataclass
 import datetime as dt
+from enum import StrEnum
 from hashlib import md5
+from http import HTTPMethod
 from itertools import cycle
-from typing import Final, Literal
+from typing import Final
 
 from aiohttp import ClientSession, ClientTimeout
-from redis.asyncio import Redis
+from dependency_injector.wiring import Provide, inject
+from opentelemetry.context import attach, detach
+from opentelemetry.propagate import extract as extract_context, inject as inject_context
+from opentelemetry.trace import Tracer
+from opentelemetry.trace.span import Span
 
 from common.brokers.interface import IBrokerProducer
+from common.databases.redis.client import RedisClient
 from common.logs import LoggerLike
+from service_crawler.src.container import Container
+
+
+class ResourceStatus(StrEnum):
+    UP = "UP"
+    DOWN = "DOWN"
+    UNKNOWN = "UNKNOWN"
 
 
 @dataclass
 class CrawledURL:
     url: str
-    status: Literal["UP", "DOWN"]
+    status: ResourceStatus
     updated_at: str
+    comment: str | None = None
 
 
 class CrawlingPipeline:
     def __init__(
         self,
-        logger: LoggerLike,
-        concurrent_workers: int,
-        producer: IBrokerProducer,
-        redis: Redis,
+        queue: asyncio.Queue,
+        workers: Sequence["Worker"],
     ) -> None:
-        self._logger = logger
-        self._producer = producer
-        self._redis = redis
-        self._workers_amount = concurrent_workers
-        self._queue = asyncio.Queue(maxsize=100)
+        self._workers = workers
+        self._queue = queue
         self._processor: asyncio.Task | None = None
-        self._workers = [Worker(logger=self._logger, queue=self._queue) for _ in range(self._workers_amount)]
 
-    async def _process_urls(self) -> None:
+    @inject
+    async def _process_urls(self, producer: IBrokerProducer = Provide[Container.broker_producer]) -> None:
         while True:
-            crawled_url = await self._queue.get()
-            await self._producer.send(asdict(crawled_url))
-            self._queue.task_done()
+            payload, meta = await self._queue.get()
+            context = extract_context(meta)
+            token = attach(context)
+            try:
+                await producer.send(asdict(payload))
+            finally:
+                detach(token)
+                self._queue.task_done()
 
-    async def start(self) -> None:
-        urls = await self._redis.smembers("crawling_urls")
-        self._logger.info("Fetched %d URL(s) to crawl from Redis", len(urls))
+    @inject
+    async def start(
+        self,
+        db: RedisClient = Provide[Container.db_client],
+        logger: LoggerLike = Provide[Container.logger],
+    ) -> None:
+        urls = await db.redis.smembers("crawling_urls")
+        logger.info("Fetched %d URL(s) to crawl from Redis", len(urls))
         if not urls:
             raise RuntimeError("No URLs to crawl found in Redis")
 
         for url in urls:
-            worker_index = int(md5(url.encode(), usedforsecurity=False).hexdigest(), 16) % self._workers_amount
+            worker_index = int(md5(url.encode(), usedforsecurity=False).hexdigest(), 16) % len(self._workers)
             self._workers[worker_index].add_urls([url])
 
-        self._logger.info("Starting crawling pipeline with %d worker(s)...", len(self._workers))
+        logger.info("Starting crawling pipeline with %d worker(s)...", len(self._workers))
         self._processor = asyncio.create_task(self._process_urls())
         for worker in self._workers:
             await worker.start()
 
-    async def stop(self) -> None:
-        self._logger.info("Stopping crawling pipeline...")
+    @inject
+    async def stop(self, logger: LoggerLike = Provide[Container.logger]) -> None:
+        logger.info("Stopping crawling pipeline...")
         await asyncio.gather(*(worker.stop() for worker in self._workers))
         if not self._processor:
             return
@@ -78,10 +99,9 @@ class CrawlingPipeline:
 class Worker:
     REQUEST_TIMEOUT: Final[ClientTimeout] = ClientTimeout(total=10)
 
-    def __init__(self, logger: LoggerLike, queue: asyncio.Queue[CrawledURL]) -> None:
-        self._urls_to_crawl = set()
+    def __init__(self, queue: asyncio.Queue) -> None:
         self._queue = queue
-        self._logger = logger
+        self._urls_to_crawl = set()
         self._session = ClientSession()  # TODO: upgrade
         self._task: asyncio.Task | None = None
 
@@ -92,28 +112,44 @@ class Worker:
         self._urls_to_crawl.difference_update(urls)
 
     async def start(self) -> None:
-        asyncio.create_task(self._run())
+        self._task = asyncio.create_task(self._run())
 
-    async def _run(self) -> None:
+    @inject
+    async def _run(self, tracer: Tracer = Provide[Container.tracer]) -> None:
         while True:
             for url in cycle(self._urls_to_crawl):
-                crawled_url = await self._crawl(url)
-                await self._queue.put(crawled_url)
+                with tracer.start_as_current_span(
+                    "http.crawl",
+                    attributes={"http.url": url, "http.method": HTTPMethod.GET},
+                ) as span:
+                    url = await self._crawl(url, span)
+                    meta = {}
+                    inject_context(meta)
+                    await self._queue.put((url, meta))
 
-    async def _crawl(self, url: str) -> CrawledURL:
+    @inject
+    async def _crawl(
+        self,
+        url: str,
+        span: Span,
+        logger: LoggerLike = Provide[Container.logger],
+    ) -> CrawledURL:
         try:
             async with self._session.get(url, timeout=self.REQUEST_TIMEOUT) as response:
+                span.set_attribute("http.status_code", response.status)
                 result = CrawledURL(
                     url=url,
-                    status="UP" if response.status < 400 else "DOWN",
+                    status=ResourceStatus.UP if response.status < 400 else ResourceStatus.DOWN,
                     updated_at=dt.datetime.now(tz=dt.UTC).isoformat(),
                 )
         except Exception as error:
-            self._logger.error("Error while crawling URL '%s': %s", url, error)
+            # span.record_exception(error)
+            logger.error("Error while crawling URL '%s': %s", url, error)
             result = CrawledURL(
                 url=url,
-                status="DOWN",
+                status=ResourceStatus.UNKNOWN,
                 updated_at=dt.datetime.now(tz=dt.UTC).isoformat(),
+                comment=str(error),
             )
 
         await asyncio.sleep(1)  # TODO: remove
@@ -124,6 +160,7 @@ class Worker:
             self._task.cancel()
             with suppress(asyncio.CancelledError):
                 await self._task
+        await self._session.close()
 
     async def is_healthy(self) -> bool:
         return self._task is not None and not self._task.done()
