@@ -9,6 +9,10 @@ class GRPCClient:
         self._logger = logger
 
         self._channel: Channel
+        self._interceptors = []
+
+    def add_interceptor(self, interceptor) -> None:
+        self._interceptors.append(interceptor)
 
     @property
     def channel(self) -> Channel:
@@ -16,7 +20,7 @@ class GRPCClient:
 
     async def start(self) -> None:
         self._logger.info("Creating gRPC channel to %s...", self._address)
-        self._channel = insecure_channel(self._address)
+        self._channel = insecure_channel(self._address, interceptors=self._interceptors)
 
     async def stop(self) -> None:
         self._logger.info("Closing gRPC channel to %s...", self._address)

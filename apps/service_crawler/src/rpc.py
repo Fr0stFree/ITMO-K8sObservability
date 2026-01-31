@@ -15,7 +15,9 @@ class RPCServicer(CrawlerServiceServicer):
         request: AddTargetRequest,
         context: ServicerContext,
     ) -> Empty:
+        metadata = context.invocation_metadata()
         print(f"got request {request}")
+        print(f"got metadata {metadata}")
         return Empty()
 
     @property

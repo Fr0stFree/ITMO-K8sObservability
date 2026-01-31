@@ -1,16 +1,10 @@
 from concurrent.futures import ThreadPoolExecutor
-from typing import Protocol
 
 from grpc.aio import Server, server
 
+from common.grpc.interface import IServicer, IServicerRegisterer
 from common.grpc.settings import GRPCServerSettings
 from common.logs import LoggerLike
-
-type IServicer = object
-
-
-class IServicerRegisterer(Protocol):
-    def __call__(self, servicer: IServicer, server: Server) -> None: ...
 
 
 class GRPCServer:

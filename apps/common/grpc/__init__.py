@@ -1,3 +1,4 @@
 from .client import GRPCClient
-from .server import GRPCServer, IServicer, IServicerRegisterer
+from .interface import IGRPCClient, IServicer, IServicerRegisterer
+from .server import GRPCServer
 from .settings import GRPCServerSettings

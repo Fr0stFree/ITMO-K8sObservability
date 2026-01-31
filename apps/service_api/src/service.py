@@ -5,18 +5,27 @@ import signal
 
 from dependency_injector.wiring import Provide, inject
 
+from common.grpc import IGRPCClient
 from common.http import IHTTPServer
 from common.logs import LoggerLike
+from common.tracing.context.grpc import OpenTelemetryClientInterceptor
 from common.types.interface import IHealthCheck, ILifeCycle
 from common.utils.health import check_health
 from service_api.src.container import Container
+from service_api.src.grpc import interceptors
 from service_api.src.http import handlers, middleware
 
 
 class APIService:
 
     @inject
-    def __init__(self, http_server: IHTTPServer = Provide[Container.http_server]) -> None:
+    def __init__(
+        self,
+        http_server: IHTTPServer = Provide[Container.http_server],
+        crawler_client: IGRPCClient = Provide[Container.crawler_client],
+    ) -> None:
+        crawler_client.add_interceptor(OpenTelemetryClientInterceptor())
+        crawler_client.add_interceptor(interceptors.ObservabilityClientInterceptor())
         http_server.add_middleware(middleware.observability)
         http_server.add_handler(
             path="/health", handler=lambda request: handlers.health(request, self.is_healthy), method=HTTPMethod.GET

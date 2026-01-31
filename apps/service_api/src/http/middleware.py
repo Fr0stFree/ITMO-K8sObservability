@@ -25,14 +25,27 @@ async def observability(
         "http.request", attributes={"http.method": request.method, "http.endpoint": request.path}
     ) as span:
         with request_latency.labels(method=request.method, endpoint=request.path).time():
-            logger.info("Processing %s request for %s", request.method, request.path)
+            logger.info(
+                "Processing %s request for %s",
+                request.method,
+                request.path,
+                extra={"path": request.path, "method": request.method},
+            )
             try:
                 response = await handler(request)
             except Exception as error:
-                logger.error("Failed to process %s request for %s: %s", request.method, request.path, str(error))
                 request_counter.labels(
-                    method=request.method, endpoint=request.path, http_status=HTTPStatus.INTERNAL_SERVER_ERROR
+                    method=request.method,
+                    endpoint=request.path,
+                    http_status=HTTPStatus.INTERNAL_SERVER_ERROR,
                 ).inc()
+                logger.error(
+                    "Failed to process %s request for %s: %s",
+                    request.method,
+                    request.path,
+                    str(error),
+                    extra={"path": request.path, "method": request.method, "status": HTTPStatus.INTERNAL_SERVER_ERROR},
+                )
                 span.record_exception(error)
                 span.set_status(status=StatusCode.ERROR, description=str(error))
                 raise error
@@ -43,6 +56,7 @@ async def observability(
                 request.method,
                 request.path,
                 response.status,
+                extra={"path": request.path, "method": request.method, "status": response.status},
             )
             span.set_attribute("http.status_code", response.status)
             span.set_status(status=StatusCode.OK)

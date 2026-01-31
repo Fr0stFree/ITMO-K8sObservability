@@ -42,7 +42,7 @@ class CrawlerService:
             trace_exporter,
             db_client,
             broker_producer,
-            pipeline,
+            # pipeline,
         ):
             await component.start()
         logger.info("The app has been started")
