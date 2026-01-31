@@ -1,28 +1,14 @@
 import asyncio
-from collections.abc import Awaitable, Callable, Iterable
+from collections.abc import Awaitable, Callable
 import json
 from uuid import uuid4
 
 from aiokafka import AIOKafkaConsumer
-from opentelemetry.context import Context
-from opentelemetry.propagate import extract as extract_context
-from opentelemetry.propagators.textmap import Getter
 from opentelemetry.trace import Tracer
 
 from common.brokers.kafka.settings import KafkaConsumerSettings
 from common.logs import LoggerLike
-
-
-class KafkaContextExtractor(Getter):
-    def get(self, carrier: Iterable[tuple[str, bytes]], key: str) -> list[str] | None:
-        values = [value.decode("utf-8") for header_key, value in carrier if header_key.lower() == key.lower()]
-        return values or None
-
-    def keys(self, carrier: Iterable[tuple[str, bytes]]) -> list[str]:
-        return [key for key, _ in carrier]
-
-    def extract(self, carrier: Iterable[tuple[str, bytes]]) -> Context:
-        return extract_context(carrier, getter=self)
+from common.tracing.context.kafka import KafkaContextExtractor
 
 
 class KafkaConsumer:

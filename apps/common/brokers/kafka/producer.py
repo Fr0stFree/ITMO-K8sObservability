@@ -2,21 +2,15 @@ import json
 from uuid import uuid4
 
 from aiokafka import AIOKafkaProducer
-from opentelemetry.propagate import inject as inject_context
 from opentelemetry.trace import Tracer
 
 from common.brokers.kafka.settings import KafkaProducerSettings
 from common.logs import LoggerLike
-
-
-class KafkaHeaderProvider:
-    def inject(self, headers: dict[str, str]) -> list[tuple[str, bytes]]:
-        inject_context(headers)
-        return [(key, value.encode("utf-8")) for key, value in headers.items()]
+from common.tracing.context.kafka import KafkaContextInjector
 
 
 class KafkaProducer:
-    headers_provider = KafkaHeaderProvider()
+    context_injector = KafkaContextInjector()
 
     def __init__(
         self,
@@ -58,5 +52,5 @@ class KafkaProducer:
         ):
             headers = {}
             await self._producer.send_and_wait(
-                self._settings.topic, payload, headers=self.headers_provider.inject(headers)
+                self._settings.topic, payload, headers=self.context_injector.inject(headers)
             )

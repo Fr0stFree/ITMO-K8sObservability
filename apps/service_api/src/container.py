@@ -1,4 +1,6 @@
 from dependency_injector import containers, providers
+from opentelemetry import trace
+from prometheus_client import Counter, Histogram
 
 from common.grpc import GRPCClient
 from common.http import HTTPServer, HTTPServerSettings
@@ -14,8 +16,23 @@ class Container(containers.DeclarativeContainer):
 
     # observability
     logger = providers.Singleton(new_logger, settings=LoggingSettings(name="api-service"))
+    tracer = providers.Singleton(trace.get_tracer, "api-service")
     metrics_server = providers.Singleton(MetricsServer, settings=MetricsServerSettings(), logger=logger)
     trace_exporter = providers.Singleton(TraceExporter, settings=TraceExporterSettings(), logger=logger)
+
+    # metrics
+    requests_counter = providers.Singleton(
+        Counter,
+        "service_api_http_requests_total",
+        "Total number of HTTP requests",
+        ["method", "endpoint", "http_status"],
+    )
+    request_latency = providers.Singleton(
+        Histogram,
+        "service_api_http_request_latency_seconds",
+        "Latency of HTTP requests in seconds",
+        ["method", "endpoint"],
+    )
 
     # components
     http_server = providers.Singleton(HTTPServer, settings=HTTPServerSettings(), logger=logger)

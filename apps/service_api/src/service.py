@@ -9,21 +9,22 @@ from common.http import IHTTPServer
 from common.logs import LoggerLike
 from common.types.interface import IHealthCheck, ILifeCycle
 from common.utils.health import check_health
-from service_api.src import http
 from service_api.src.container import Container
+from service_api.src.http import handlers, middleware
 
 
 class APIService:
 
     @inject
     def __init__(self, http_server: IHTTPServer = Provide[Container.http_server]) -> None:
+        http_server.add_middleware(middleware.observability)
         http_server.add_handler(
-            path="/health", handler=lambda request: http.health(request, self.is_healthy), method=HTTPMethod.GET
+            path="/health", handler=lambda request: handlers.health(request, self.is_healthy), method=HTTPMethod.GET
         )
-        http_server.add_handler(path="/targets", handler=http.add_target, method=HTTPMethod.POST)
-        http_server.add_handler(path="/targets/{target_id}", handler=http.get_target, method=HTTPMethod.GET)
-        http_server.add_handler(path="/targets", handler=http.list_targets, method=HTTPMethod.GET)
-        http_server.add_handler(path="/targets/{target_id}", handler=http.delete_target, method=HTTPMethod.DELETE)
+        http_server.add_handler(path="/targets", handler=handlers.add_target, method=HTTPMethod.POST)
+        http_server.add_handler(path="/targets/{target_id}", handler=handlers.get_target, method=HTTPMethod.GET)
+        http_server.add_handler(path="/targets", handler=handlers.list_targets, method=HTTPMethod.GET)
+        http_server.add_handler(path="/targets/{target_id}", handler=handlers.delete_target, method=HTTPMethod.DELETE)
 
     @inject
     async def start(

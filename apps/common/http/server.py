@@ -1,12 +1,10 @@
-from collections.abc import Awaitable, Callable
 from http import HTTPMethod
 
-from aiohttp.web import Application, AppRunner, Request, Response, TCPSite
+from aiohttp.typedefs import Handler as IHttpHandler, Middleware as IHttpMiddleware
+from aiohttp.web import Application, AppRunner, TCPSite
 
 from common.http.settings import HTTPServerSettings
 from common.logs import LoggerLike
-
-type IHttpHandler = Callable[[Request], Awaitable[Response]]
 
 
 class HTTPServer:
@@ -18,9 +16,13 @@ class HTTPServer:
 
         self._site: TCPSite
 
+    def add_middleware(self, middleware: IHttpMiddleware) -> None:
+        self._logger.info("Registering HTTP middleware '%s'", middleware.__name__)
+        self._app.middlewares.append(middleware)
+
     def add_handler(self, path: str, handler: IHttpHandler, method: HTTPMethod) -> None:
         self._logger.info(
-            "Registering HTTP-%s handler %s",
+            "Registering HTTP-%s handler '%s'",
             method,
             path,
             extra={"path": path, "method": method},

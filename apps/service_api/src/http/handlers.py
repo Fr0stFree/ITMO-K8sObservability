@@ -22,10 +22,7 @@ async def health(request: Request, callback: Callable[[], Awaitable[bool]]) -> R
 
 
 @inject
-async def add_target(
-    request: Request,
-    crawler_stub: CrawlerServiceStub = Provide[Container.crawler_stub],
-) -> Response:
+async def add_target(request: Request, crawler_stub: CrawlerServiceStub = Provide[Container.crawler_stub]) -> Response:
     try:
         body = await request.json()
     except JSONDecodeError:
