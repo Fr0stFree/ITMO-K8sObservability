@@ -1,12 +1,11 @@
 import asyncio
+from collections.abc import Iterable
 import signal
-from typing import Iterable
-
 
 from common.logs import LoggerLike
-from common.utils.health import check_health
-from common.service.settings import ServiceSettings
 from common.service.interface import IServiceComponent
+from common.service.settings import ServiceSettings
+from common.utils.health import check_health
 
 
 class BaseService:

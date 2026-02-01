@@ -1,6 +1,5 @@
 from dependency_injector.wiring import Provide, inject
 
-
 from service_analyzer.src.container import Container
 
 

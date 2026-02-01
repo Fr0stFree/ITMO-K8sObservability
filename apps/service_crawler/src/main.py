@@ -1,13 +1,12 @@
 import asyncio
 from http import HTTPMethod
 
+from dependency_injector.wiring import Provide, inject
+
 from common.http import IHTTPServer
 from common.service import IService
 from service_crawler.src.container import Container
 from service_crawler.src.http import handlers
-
-
-from dependency_injector.wiring import Provide, inject
 
 
 @inject

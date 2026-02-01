@@ -1,6 +1,7 @@
+import datetime as dt
+
 from pydantic import Field
 from pydantic_settings import BaseSettings
-import datetime as dt
 
 
 class ServiceSettings(BaseSettings):

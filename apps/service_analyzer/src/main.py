@@ -1,13 +1,14 @@
 import asyncio
 from http import HTTPMethod
 
+from dependency_injector.wiring import Provide, inject
+
 from common.brokers.interface import IBrokerConsumer
 from common.http import IHTTPServer
 from common.service import IService
-from service_analyzer.src.container import Container
-from dependency_injector.wiring import Provide, inject
-from service_analyzer.src.http import handlers
 from service_analyzer.src.consumer.handlers import on_new_message
+from service_analyzer.src.container import Container
+from service_analyzer.src.http import handlers
 
 
 @inject

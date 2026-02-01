@@ -1,4 +1,3 @@
-from re import A
 from dependency_injector import containers, providers
 from opentelemetry import trace
 from prometheus_client import Counter, Histogram
@@ -44,7 +43,6 @@ class Container(containers.DeclarativeContainer):
         "Latency of gRPC requests in seconds",
         ["method"],
     )
-
 
     # components
     http_server = providers.Singleton(HTTPServer, settings=HTTPServerSettings(), logger=logger)

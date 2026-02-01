@@ -1,14 +1,14 @@
 import asyncio
 from http import HTTPMethod
 
+from dependency_injector.wiring import Provide, inject
+
+from common.grpc import IGRPCClient
 from common.http import IHTTPServer
 from common.service import IService
 from common.tracing.context.grpc import OpenTelemetryClientInterceptor
 from service_api.src.container import Container
 from service_api.src.grpc import interceptors
-
-from dependency_injector.wiring import Provide, inject
-from common.grpc import IGRPCClient
 from service_api.src.http import handlers, middleware
 
 
