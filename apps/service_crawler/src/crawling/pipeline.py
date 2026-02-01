@@ -1,5 +1,5 @@
 import asyncio
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 from contextlib import suppress
 from dataclasses import asdict
 from hashlib import md5
@@ -39,6 +39,19 @@ class CrawlingPipeline:
                 finally:
                     self._queue.task_done()
 
+    def register_urls(self, urls: Iterable[str]) -> None:
+        batches = {worker: [] for worker in self._workers}
+        for url in urls:
+            worker_index = int(md5(url.encode(), usedforsecurity=False).hexdigest(), 16) % len(self._workers)
+            batches[self._workers[worker_index]].append(url)
+
+        for worker, batch in batches.items():
+            worker.add_urls(batch)
+
+    def unregister_urls(self, urls: Iterable[str]) -> None:
+        for worker in self._workers:
+            worker.remove_urls(urls)
+
     @inject
     async def start(
         self,
@@ -50,9 +63,7 @@ class CrawlingPipeline:
         if not urls:
             raise RuntimeError("No URLs to crawl found in Redis")
 
-        for url in urls:
-            worker_index = int(md5(url.encode(), usedforsecurity=False).hexdigest(), 16) % len(self._workers)
-            self._workers[worker_index].add_urls([url])
+        self.register_urls(urls)
 
         logger.info("Starting crawling pipeline with %d worker(s)...", len(self._workers))
         self._processor = asyncio.create_task(self._process_urls())

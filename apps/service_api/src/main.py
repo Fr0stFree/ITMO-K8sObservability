@@ -1,5 +1,4 @@
 import asyncio
-from http import HTTPMethod
 
 from dependency_injector.wiring import Provide, inject
 
@@ -18,32 +17,8 @@ async def main(
     crawler_client: IGRPCClient = Provide[Container.crawler_client],
     service: IService = Provide[Container.service],
 ) -> None:
+    http_server.add_routes(handlers.routes)
     http_server.add_middleware(middleware.observability)
-    http_server.add_handler(
-        path="/health",
-        handler=lambda request: handlers.health(request, service.is_healthy),
-        method=HTTPMethod.GET,
-    )
-    http_server.add_handler(
-        path="/targets",
-        handler=handlers.add_target,
-        method=HTTPMethod.POST,
-    )
-    http_server.add_handler(
-        path="/targets/{target_id}",
-        handler=handlers.get_target,
-        method=HTTPMethod.GET,
-    )
-    http_server.add_handler(
-        path="/targets",
-        handler=handlers.list_targets,
-        method=HTTPMethod.GET,
-    )
-    http_server.add_handler(
-        path="/targets/{target_id}",
-        handler=handlers.delete_target,
-        method=HTTPMethod.DELETE,
-    )
     crawler_client.add_interceptor(OpenTelemetryClientInterceptor())
     crawler_client.add_interceptor(interceptors.ObservabilityClientInterceptor())
 

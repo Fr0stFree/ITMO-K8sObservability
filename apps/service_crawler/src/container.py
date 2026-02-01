@@ -1,6 +1,6 @@
 from dependency_injector import containers, providers
 from opentelemetry import trace
-from prometheus_client import Counter
+from prometheus_client import Counter, Histogram
 
 from common.brokers.kafka import KafkaProducer, KafkaProducerSettings
 from common.databases.redis import RedisClient, RedisClientSettings
@@ -11,8 +11,7 @@ from common.metrics import MetricsServer, MetricsServerSettings
 from common.service.service import BaseService
 from common.service.settings import ServiceSettings
 from common.tracing import TraceExporter, TraceExporterSettings
-from service_crawler.src.factories import new_crawling_pipeline
-from service_crawler.src.grpc.servicer import RPCServicer
+from service_crawler.src.factories import new_crawling_pipeline, new_rpc_servicer
 from service_crawler.src.settings import CrawlerServiceSettings
 
 
@@ -34,9 +33,15 @@ class Container(containers.DeclarativeContainer):
         "Total number of crawled URLs",
         ["status"],
     )
+    rpc_request_latency = providers.Singleton(
+        Histogram,
+        "service_crawler_grpc_request_latency_seconds",
+        "Latency of gRPC requests in seconds",
+        ["method"],
+    )
 
     # components
-    rpc_servicer = providers.Singleton(RPCServicer)
+    rpc_servicer = providers.Singleton(new_rpc_servicer)
     grpc_server = providers.Singleton(
         GRPCServer,
         servicer=rpc_servicer,
@@ -58,7 +63,7 @@ class Container(containers.DeclarativeContainer):
             grpc_server,
             db_client,
             broker_producer,
-            crawling_pipeline,
+            # crawling_pipeline,
         ),
         settings=ServiceSettings(name=service_name),
         logger=logger,

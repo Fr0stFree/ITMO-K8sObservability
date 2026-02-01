@@ -1,7 +1,7 @@
 from http import HTTPMethod
 
 from aiohttp.typedefs import Handler as IHttpHandler, Middleware as IHttpMiddleware
-from aiohttp.web import Application, AppRunner, TCPSite
+from aiohttp.web import Application, AppRunner, RouteTableDef, TCPSite
 
 from common.http.settings import HTTPServerSettings
 from common.logs import LoggerLike
@@ -28,6 +28,10 @@ class HTTPServer:
             extra={"path": path, "method": method},
         )
         self._app.router.add_route(method, path, handler)
+
+    def add_routes(self, routes: RouteTableDef) -> None:
+        self._logger.info("Registering %d HTTP routes", len(routes))
+        self._app.add_routes(routes)
 
     async def is_healthy(self) -> bool:
         return self._runner.server is not None

@@ -1,11 +1,15 @@
-from collections.abc import Awaitable, Callable
 from http import HTTPStatus
 
 from aiohttp.web import Request, Response, json_response
+from dependency_injector.wiring import Provide, inject
+
+from common.types.interface import IHealthCheck
+from service_crawler.src.container import Container
 
 
-async def health(request: Request, callback: Callable[[], Awaitable[bool]]) -> Response:
-    result = await callback()
+@inject
+async def health(request: Request, service: IHealthCheck = Provide[Container.service]) -> Response:
+    result = await service.is_healthy()
     if result:
         return json_response(status=HTTPStatus.OK)
 

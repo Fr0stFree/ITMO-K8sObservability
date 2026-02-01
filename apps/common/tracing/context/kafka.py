@@ -1,16 +1,11 @@
 from collections.abc import Iterable
 
 from opentelemetry.context import Context
-from opentelemetry.propagate import extract as extract_context, inject as inject_context
+from opentelemetry.propagate import extract as extract_context
 from opentelemetry.propagators.textmap import Getter
 
 
-class KafkaContextInjector:
-    def inject(self, headers: dict[str, str]) -> list[tuple[str, bytes]]:
-        inject_context(headers)
-        return [(key, value.encode("utf-8")) for key, value in headers.items()]
-
-
+# TODO: fix
 class KafkaContextExtractor(Getter):
     def get(self, carrier: Iterable[tuple[str, bytes]], key: str) -> list[str] | None:
         values = [value.decode("utf-8") for header_key, value in carrier if header_key.lower() == key.lower()]

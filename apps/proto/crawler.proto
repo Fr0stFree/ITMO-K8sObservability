@@ -6,8 +6,14 @@ import "google/protobuf/empty.proto";
 
 service CrawlerService {
   rpc AddTarget (AddTargetRequest) returns (google.protobuf.Empty);
+  rpc RemoveTarget (RemoveTargetRequest) returns (google.protobuf.Empty);
 }
 
 message AddTargetRequest {
   string target_url = 1;
 }
+
+message RemoveTargetRequest {
+  string target_url = 1;
+}
+

@@ -1,7 +1,6 @@
 from opentelemetry import trace
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.trace.export import ConsoleSpanExporter, SimpleSpanProcessor
 
 from common.logs import LoggerLike
 from common.tracing.settings import TraceExporterSettings
@@ -32,7 +31,7 @@ class TraceExporter:
         self._provider = TracerProvider(resource=resource)
 
         # self._provider.add_span_processor(BatchSpanProcessor(self._exporter))
-        self._provider.add_span_processor(SimpleSpanProcessor(ConsoleSpanExporter()))
+        # self._provider.add_span_processor(SimpleSpanProcessor(ConsoleSpanExporter()))
         trace.set_tracer_provider(self._provider)
 
     async def stop(self) -> None:

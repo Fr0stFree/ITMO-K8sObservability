@@ -1,4 +1,4 @@
-from grpc.aio import Channel, insecure_channel
+from grpc.aio import Channel, ClientInterceptor, insecure_channel
 
 from common.logs import LoggerLike
 
@@ -11,7 +11,7 @@ class GRPCClient:
         self._channel: Channel
         self._interceptors = []
 
-    def add_interceptor(self, interceptor) -> None:
+    def add_interceptor(self, interceptor: ClientInterceptor) -> None:
         self._interceptors.append(interceptor)
 
     @property
