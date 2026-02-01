@@ -1,9 +1,28 @@
-from collections.abc import Awaitable, Callable
+from abc import ABC
+from collections.abc import Awaitable, Callable, MutableMapping
 from typing import Protocol
 
 
+class IProducerInterceptor(ABC):
+    async def before_send(
+        self, destination: str, payload: MutableMapping[str, str], meta: MutableMapping[str, str]
+    ) -> None:
+        pass
+
+    async def after_send(
+        self, destination: str, payload: MutableMapping[str, str], meta: MutableMapping[str, str]
+    ) -> None:
+        pass
+
+    async def on_error(
+        self, destination: str, payload: MutableMapping[str, str], meta: MutableMapping[str, str], exception: Exception
+    ) -> None:
+        pass
+
+
 class IBrokerProducer(Protocol):
-    async def send(self, message: dict) -> None: ...
+    async def send(self, message: dict, meta: dict) -> None: ...
+    def add_interceptor(self, interceptor: IProducerInterceptor) -> None: ...
 
 
 class IBrokerConsumer(Protocol):

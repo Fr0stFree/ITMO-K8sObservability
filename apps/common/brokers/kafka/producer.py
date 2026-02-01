@@ -4,13 +4,12 @@ from uuid import uuid4
 from aiokafka import AIOKafkaProducer
 from opentelemetry.trace import Tracer
 
+from common.brokers.interface import IProducerInterceptor
 from common.brokers.kafka.settings import KafkaProducerSettings
 from common.logs import LoggerLike
-from common.tracing.context.kafka import KafkaContextInjector
 
 
 class KafkaProducer:
-    context_injector = KafkaContextInjector()
 
     def __init__(
         self,
@@ -27,6 +26,10 @@ class KafkaProducer:
             client_id=self._client_id,
             value_serializer=lambda value: json.dumps(value).encode("utf-8"),
         )
+        self._interceptor: list[IProducerInterceptor] = []
+
+    def add_interceptor(self, interceptor: IProducerInterceptor) -> None:
+        self._interceptor.append(interceptor)
 
     async def start(self) -> None:
         self._logger.info(
@@ -45,12 +48,20 @@ class KafkaProducer:
         self._logger.info("Shutting down the kafka producer '%s'...", self._client_id)
         await self._producer.stop()
 
-    async def send(self, payload: dict) -> None:
-        with self._tracer.start_as_current_span(
-            "kafka.produce",
-            attributes={"messaging.destination": self._settings.topic, "messaging.client_id": self._client_id},
-        ):
-            headers = {}
-            await self._producer.send_and_wait(
-                self._settings.topic, payload, headers=self.context_injector.inject(headers)
-            )
+    def _encode_headers(self, headers: dict[str, str]) -> list[tuple[str, bytes]]:
+        return [(key, value.encode("utf-8")) for key, value in headers.items()]
+
+    async def send(self, payload: dict, meta: dict) -> None:
+        for interceptor in self._interceptor:
+            await interceptor.before_send(self._settings.topic, payload, meta)
+
+        try:
+            headers = self._encode_headers(meta)
+            await self._producer.send_and_wait(self._settings.topic, payload, headers=headers)
+        except Exception as error:
+            for interceptor in self._interceptor:
+                await interceptor.on_error(self._settings.topic, payload, meta, error)
+            raise error
+
+        for interceptor in self._interceptor:
+            await interceptor.after_send(self._settings.topic, payload, meta)

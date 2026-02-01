@@ -5,6 +5,7 @@ from json import JSONDecodeError
 from aiohttp.web import Request, Response, json_response
 from dependency_injector.wiring import Provide, inject
 from google.protobuf.json_format import MessageToDict
+from opentelemetry.trace import Span
 
 from protocol.analyzer_pb2 import GetTargetDetailsRequest
 from protocol.analyzer_pb2_grpc import AnalyzerServiceStub
@@ -52,9 +53,27 @@ async def get_target(
     return json_response(response_body, status=HTTPStatus.OK)
 
 
-async def list_targets(request: Request) -> Response:
-    raise NotImplementedError("Not implemented yet")
+async def list_targets(
+    request: Request,
+    analyzer_stub: AnalyzerServiceStub = Provide[Container.analyzer_stub],
+    pagination_default_limit: int = Provide[Container.settings.pagination_default_limit],
+    span: Span = Provide[Container.current_span],
+) -> Response:
+    limit = request.query.get("limit", pagination_default_limit)
+    offset = request.query.get("offset", 0)
+    span.set_attribute("pagination.limit", limit)
+    span.set_attribute("pagination.offset", offset)
+    ...  # Implementation goes here
+    return json_response({"targets": []}, status=HTTPStatus.OK)
 
 
-async def delete_target(request: Request) -> Response:
-    raise NotImplementedError("Not implemented yet")
+async def delete_target(
+    request: Request,
+    crawler_stub: CrawlerServiceStub = Provide[Container.crawler_stub],
+) -> Response:
+    target_id = request.match_info.get("target_id")
+    if not target_id:
+        return Response(text="missing url id in path", status=HTTPStatus.BAD_REQUEST)
+
+    ...  # Implementation goes here
+    return Response(status=HTTPStatus.NO_CONTENT)

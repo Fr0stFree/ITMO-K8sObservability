@@ -11,10 +11,11 @@ from typing import Final
 
 from aiohttp import ClientSession, ClientTimeout
 from dependency_injector.wiring import Provide, inject
-from opentelemetry.context import attach, detach
 from opentelemetry.propagate import extract as extract_context, inject as inject_context
 from opentelemetry.trace import Tracer
 from opentelemetry.trace.span import Span
+from opentelemetry.trace.status import StatusCode
+from prometheus_client import Counter
 
 from common.brokers.interface import IBrokerProducer
 from common.databases.redis.client import RedisClient
@@ -47,16 +48,18 @@ class CrawlingPipeline:
         self._processor: asyncio.Task | None = None
 
     @inject
-    async def _process_urls(self, producer: IBrokerProducer = Provide[Container.broker_producer]) -> None:
+    async def _process_urls(
+        self,
+        producer: IBrokerProducer = Provide[Container.broker_producer],
+        tracer: Tracer = Provide[Container.tracer],
+    ) -> None:
         while True:
             payload, meta = await self._queue.get()
-            context = extract_context(meta)
-            token = attach(context)
-            try:
-                await producer.send(asdict(payload))
-            finally:
-                detach(token)
-                self._queue.task_done()
+            with tracer.start_as_current_span("broker.produce", context=extract_context(meta)):
+                try:
+                    await producer.send(asdict(payload), meta)
+                finally:
+                    self._queue.task_done()
 
     @inject
     async def start(
@@ -115,14 +118,19 @@ class Worker:
         self._task = asyncio.create_task(self._run())
 
     @inject
-    async def _run(self, tracer: Tracer = Provide[Container.tracer]) -> None:
+    async def _run(
+        self,
+        tracer: Tracer = Provide[Container.tracer],
+        counter: Counter = Provide[Container.crawled_urls_counter],
+    ) -> None:
         while True:
             for url in cycle(self._urls_to_crawl):
                 with tracer.start_as_current_span(
                     "http.crawl",
                     attributes={"http.url": url, "http.method": HTTPMethod.GET},
-                ) as span:
-                    url = await self._crawl(url, span)
+                ):
+                    url = await self._crawl(url)
+                    counter.labels(status=url.status).inc()
                     meta = {}
                     inject_context(meta)
                     await self._queue.put((url, meta))
@@ -131,8 +139,8 @@ class Worker:
     async def _crawl(
         self,
         url: str,
-        span: Span,
         logger: LoggerLike = Provide[Container.logger],
+        span: Span = Provide[Container.current_span],
     ) -> CrawledURL:
         try:
             async with self._session.get(url, timeout=self.REQUEST_TIMEOUT) as response:
@@ -142,8 +150,8 @@ class Worker:
                     status=ResourceStatus.UP if response.status < 400 else ResourceStatus.DOWN,
                     updated_at=dt.datetime.now(tz=dt.UTC).isoformat(),
                 )
+                span.set_status(StatusCode.OK)
         except Exception as error:
-            # span.record_exception(error)
             logger.error("Error while crawling URL '%s': %s", url, error)
             result = CrawledURL(
                 url=url,
@@ -151,6 +159,8 @@ class Worker:
                 updated_at=dt.datetime.now(tz=dt.UTC).isoformat(),
                 comment=str(error),
             )
+            # span.record_exception(error)
+            span.set_status(StatusCode.ERROR)
 
         await asyncio.sleep(1)  # TODO: remove
         return result

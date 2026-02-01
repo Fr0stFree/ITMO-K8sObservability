@@ -21,6 +21,7 @@ class Container(containers.DeclarativeContainer):
     # observability
     logger = providers.Singleton(new_logger, settings=LoggingSettings(name=service_name))
     tracer = providers.Singleton(trace.get_tracer, service_name)
+    current_span = providers.Factory(trace.get_current_span)
     metrics_server = providers.Singleton(MetricsServer, settings=MetricsServerSettings(), logger=logger)
     trace_exporter = providers.Singleton(TraceExporter, settings=TraceExporterSettings(), logger=logger)
 
