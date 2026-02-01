@@ -1,19 +1,19 @@
 import asyncio
 from collections.abc import Awaitable, Callable
 import json
+from typing import cast
 from uuid import uuid4
 
 from aiokafka import AIOKafkaConsumer
+from aiokafka.structs import ConsumerRecord
 from opentelemetry.trace import Tracer
 
+from common.brokers.interface import IConsumerInterceptor
 from common.brokers.kafka.settings import KafkaConsumerSettings
 from common.logs import LoggerLike
-from common.tracing.context.kafka import KafkaContextExtractor
 
 
 class KafkaConsumer:
-    context_extractor = KafkaContextExtractor()
-
     def __init__(self, settings: KafkaConsumerSettings, logger: LoggerLike, tracer: Tracer) -> None:
         self._settings = settings
         self._logger = logger
@@ -28,9 +28,13 @@ class KafkaConsumer:
         )
         self._processor: asyncio.Task | None = None
         self._on_message: Callable[[dict], Awaitable[None]] | None = None
+        self._interceptors: list[IConsumerInterceptor] = []
 
     def set_message_handler(self, on_message: Callable[[dict], Awaitable[None]]) -> None:
         self._on_message = on_message
+
+    def add_interceptor(self, interceptor: IConsumerInterceptor) -> None:
+        self._interceptors.append(interceptor)
 
     async def start(self) -> None:
         self._logger.info(
@@ -42,6 +46,13 @@ class KafkaConsumer:
         await self._consumer.start()
         self._processor = asyncio.create_task(self._process_messages())
 
+    def _retrieve_headers(self, message: ConsumerRecord) -> dict[str, str]:
+        headers = {}
+        if message.headers is not None:
+            for key, value in message.headers:
+                headers[key] = value.decode("utf-8")
+        return headers
+
     async def _process_messages(self) -> None:
         if self._processor is None:
             raise ValueError("Consumer is not started")
@@ -50,16 +61,20 @@ class KafkaConsumer:
             raise ValueError("Consumer message handler is not set")
 
         async for message in self._consumer:
-            with self._tracer.start_as_current_span(
-                "kafka.consume",
-                attributes={
-                    "consumer.topic": message.topic,
-                    "consumer.client_id": self._client_id,
-                    "consumer.offset": message.offset,
-                },
-                context=self.context_extractor.extract(message.headers),
-            ):
-                await self._on_message(message.value)
+            headers = self._retrieve_headers(message)
+            payload = cast(dict, message.value)
+            for interceptor in self._interceptors:
+                await interceptor.before_receive(message.topic, payload, headers)
+
+            try:
+                await self._on_message(payload)
+            except Exception as error:
+                for interceptor in self._interceptors:
+                    await interceptor.on_error(message.topic, payload, headers, error)
+                raise error
+
+            for interceptor in self._interceptors:
+                await interceptor.after_receive(message.topic, payload, headers)
 
     async def is_healthy(self) -> bool:
         await self._consumer.topics()

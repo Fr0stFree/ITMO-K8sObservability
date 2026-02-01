@@ -22,17 +22,12 @@ class Container(containers.DeclarativeContainer):
     metrics_server = providers.Singleton(MetricsServer, settings=MetricsServerSettings(), logger=logger)
     trace_exporter = providers.Singleton(TraceExporter, settings=TraceExporterSettings(), logger=logger)
     tracer = providers.Singleton(trace.get_tracer, service_name)
+    current_span = providers.Factory(trace.get_current_span)
 
     # components
     http_server = providers.Singleton(HTTPServer, settings=HTTPServerSettings(), logger=logger)
     rpc_servicer = providers.Singleton(RPCServicer)
-    grpc_server = providers.Singleton(
-        GRPCServer,
-        servicer=rpc_servicer,
-        registerer=rpc_servicer.provided.registerer,
-        settings=GRPCServerSettings(),
-        logger=logger,
-    )
+    grpc_server = providers.Singleton(GRPCServer, settings=GRPCServerSettings(), logger=logger)
     db_client = providers.Singleton(PostgresClient, settings=PostgresSettings(), logger=logger)
     broker_consumer = providers.Singleton(KafkaConsumer, settings=KafkaConsumerSettings(), logger=logger, tracer=tracer)
 

@@ -8,6 +8,7 @@ from prometheus_client import Histogram
 
 from common.logs.interface import LoggerLike
 from service_crawler.src.container import Container
+from opentelemetry import context, propagate
 
 
 # TODO: fix!!!
@@ -22,6 +23,7 @@ class ObservabilityServerInterceptor(ServerInterceptor):
         tracer: Tracer = Provide[Container.tracer],
         rpc_request_latency: Histogram = Provide[Container.rpc_request_latency],
     ) -> Any:
+        self._extract_context(handler_call_details)
         method = (
             handler_call_details.method.decode()
             if isinstance(handler_call_details.method, bytes)
@@ -40,3 +42,16 @@ class ObservabilityServerInterceptor(ServerInterceptor):
                     span.record_exception(error)
                     span.set_status(status=StatusCode.ERROR, description=str(error))
                     raise error
+
+    # TODO: fix, deatach context after request handling
+    def _extract_context(self, details: Any) -> None:
+        metadata = dict(details.invocation_metadata)
+
+        carrier = {}
+        for k, v in metadata.items():
+            carrier[k] = v
+
+        ctx = propagate.extract(carrier)
+        context.attach(ctx)
+        print("Context extracted in server interceptor")
+        print(f"Metadata: {metadata}")

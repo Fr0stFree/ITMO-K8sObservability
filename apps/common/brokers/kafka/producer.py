@@ -15,11 +15,9 @@ class KafkaProducer:
         self,
         settings: KafkaProducerSettings,
         logger: LoggerLike,
-        tracer: Tracer,
     ) -> None:
         self._settings = settings
         self._logger = logger
-        self._tracer = tracer
         self._client_id = f"{settings.client_prefix}-{uuid4().hex[:6]}"
         self._producer = AIOKafkaProducer(
             bootstrap_servers=settings.address,

@@ -5,7 +5,6 @@ from dependency_injector.wiring import Provide, inject
 from common.grpc import IGRPCClient
 from common.http import IHTTPServer
 from common.service import IService
-from common.tracing.context.grpc import OpenTelemetryClientInterceptor
 from service_api.src.container import Container
 from service_api.src.grpc import interceptors
 from service_api.src.http import handlers, middleware
@@ -19,7 +18,6 @@ async def main(
 ) -> None:
     http_server.add_routes(handlers.routes)
     http_server.add_middleware(middleware.observability)
-    crawler_client.add_interceptor(OpenTelemetryClientInterceptor())
     crawler_client.add_interceptor(interceptors.ObservabilityClientInterceptor())
 
     await service.run()

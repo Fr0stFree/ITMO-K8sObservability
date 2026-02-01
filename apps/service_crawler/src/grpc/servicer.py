@@ -2,14 +2,15 @@ from dependency_injector.wiring import Provide, inject
 from google.protobuf.empty_pb2 import Empty
 from grpc.aio import ServicerContext
 from opentelemetry.trace import Span
-
+from grpc.aio import Server
 from common.databases.redis.client import RedisClient
-from common.grpc.server import IServicerRegisterer
+
 from protocol.crawler_pb2 import AddTargetRequest, RemoveTargetRequest
 from protocol.crawler_pb2_grpc import (
     CrawlerServiceServicer,
     add_CrawlerServiceServicer_to_server,
 )
+
 from service_crawler.src.container import Container
 from service_crawler.src.crawling.pipeline import CrawlingPipeline
 
@@ -44,6 +45,5 @@ class RPCServicer(CrawlerServiceServicer):
         span.set_attribute("target.url", request.target_url)
         return Empty()
 
-    @property
-    def registerer(self) -> IServicerRegisterer:
-        return add_CrawlerServiceServicer_to_server
+    def add_to_server(self, server: Server) -> None:
+        return add_CrawlerServiceServicer_to_server(self, server)

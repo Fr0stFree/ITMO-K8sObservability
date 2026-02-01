@@ -2,7 +2,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 from grpc.aio import Server, server, ServerInterceptor
 
-from common.grpc.interface import IServicer, IServicerRegisterer
+from common.grpc.interface import IRPCServicer
 from common.grpc.settings import GRPCServerSettings
 from common.logs import LoggerLike
 
@@ -10,17 +10,17 @@ from common.logs import LoggerLike
 class GRPCServer:
     def __init__(
         self,
-        servicer: IServicer,
         settings: GRPCServerSettings,
-        registerer: IServicerRegisterer,
         logger: LoggerLike,
     ) -> None:
-        self._registerer = registerer
-        self._servicer = servicer
         self._settings = settings
         self._logger = logger
-        self._server: Server
         self._interceptors: list[ServerInterceptor] = []
+        self._server: Server
+        self._servicer: IRPCServicer
+
+    def setup_servicer(self, servicer: IRPCServicer) -> None:
+        self._servicer = servicer
 
     def add_interceptor(self, interceptor: ServerInterceptor) -> None:
         self._interceptors.append(interceptor)
@@ -31,7 +31,7 @@ class GRPCServer:
             ThreadPoolExecutor(max_workers=self._settings.workers_amount),
             interceptors=self._interceptors,
         )
-        self._registerer(self._servicer, self._server)
+        self._servicer.add_to_server(self._server)
         self._server.add_insecure_port(f"[::]:{self._settings.port}")
         await self._server.start()
 

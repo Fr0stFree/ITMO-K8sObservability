@@ -2,7 +2,9 @@ from typing import Protocol
 
 from grpc.aio import ClientInterceptor, Server, ServerInterceptor
 
-type IServicer = object
+
+class IRPCServicer(Protocol):
+    def add_to_server(self, server: Server) -> None: ...
 
 
 class IGRPCClient(Protocol):
@@ -11,7 +13,4 @@ class IGRPCClient(Protocol):
 
 class IGRPCServer(Protocol):
     def add_interceptor(self, interceptor: ServerInterceptor) -> None: ...
-
-
-class IServicerRegisterer(Protocol):
-    def __call__(self, servicer: IServicer, server: Server) -> None: ...
+    def setup_servicer(self, servicer: IRPCServicer) -> None: ...

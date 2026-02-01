@@ -1,6 +1,5 @@
-from grpc.aio import ServicerContext
+from grpc.aio import ServicerContext, Server
 
-from common.grpc.server import IServicerRegisterer
 from protocol.analyzer_pb2 import GetTargetDetailsRequest, GetTargetDetailsResponse
 from protocol.analyzer_pb2_grpc import AnalyzerServiceServicer, add_AnalyzerServiceServicer_to_server
 
@@ -14,6 +13,5 @@ class RPCServicer(AnalyzerServiceServicer):
         print(f"got request {request}")
         return GetTargetDetailsResponse(id="123", url="http://example.com", status="OK", checked_at=1625247600)
 
-    @property
-    def registerer(self) -> IServicerRegisterer:
-        return add_AnalyzerServiceServicer_to_server
+    def add_to_server(self, server: Server) -> None:
+        return add_AnalyzerServiceServicer_to_server(self, server)

@@ -42,15 +42,9 @@ class Container(containers.DeclarativeContainer):
 
     # components
     rpc_servicer = providers.Singleton(new_rpc_servicer)
-    grpc_server = providers.Singleton(
-        GRPCServer,
-        servicer=rpc_servicer,
-        registerer=rpc_servicer.provided.registerer,
-        settings=GRPCServerSettings(),
-        logger=logger,
-    )
+    grpc_server = providers.Singleton(GRPCServer, settings=GRPCServerSettings(), logger=logger)
     http_server = providers.Singleton(HTTPServer, settings=HTTPServerSettings(), logger=logger)
-    broker_producer = providers.Singleton(KafkaProducer, settings=KafkaProducerSettings(), logger=logger, tracer=tracer)
+    broker_producer = providers.Singleton(KafkaProducer, settings=KafkaProducerSettings(), logger=logger)
     db_client = providers.Singleton(RedisClient, settings=RedisClientSettings(), logger=logger)
     crawling_pipeline = providers.Singleton(new_crawling_pipeline, concurrent_workers=settings.concurrent_workers)
 
@@ -63,7 +57,7 @@ class Container(containers.DeclarativeContainer):
             grpc_server,
             db_client,
             broker_producer,
-            # crawling_pipeline,
+            crawling_pipeline,
         ),
         settings=ServiceSettings(name=service_name),
         logger=logger,

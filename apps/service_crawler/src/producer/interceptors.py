@@ -23,7 +23,7 @@ class ObservabilityProducerInterceptor(IProducerInterceptor):
     ) -> None:
         span.set_attribute("messaging.destination", destination)
         inject_context(meta)
-        logger.info(f"Producing message to '{destination}'...", extra={"destination": destination})
+        logger.info(f"Producing message to '{destination}'", extra={"destination": destination})
 
     @inject
     async def after_send(
@@ -34,7 +34,7 @@ class ObservabilityProducerInterceptor(IProducerInterceptor):
         logger: LoggerLike = Provide[Container.logger],
         span: Span = Provide[Container.current_span],
     ) -> None:
-        logger.info(f"Successfully produced message to '{destination}'.", extra={"destination": destination})
+        logger.info(f"Successfully produced message to '{destination}'", extra={"destination": destination})
         span.set_status(StatusCode.OK)
 
     @inject
