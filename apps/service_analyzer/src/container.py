@@ -9,6 +9,7 @@ from common.logs import LoggingSettings, new_logger
 from common.metrics import MetricsServer, MetricsServerSettings
 from common.service import BaseService, ServiceSettings
 from common.tracing import TraceExporter, TraceExporterSettings
+from service_analyzer.src.factories import new_repository
 from service_analyzer.src.grpc.servicer import RPCServicer
 from service_analyzer.src.settings import AnalyzerServiceSettings
 
@@ -30,6 +31,7 @@ class Container(containers.DeclarativeContainer):
     grpc_server = providers.Singleton(GRPCServer, settings=GRPCServerSettings(), logger=logger)
     db_client = providers.Singleton(PostgresClient, settings=PostgresSettings(), logger=logger)
     broker_consumer = providers.Singleton(KafkaConsumer, settings=KafkaConsumerSettings(), logger=logger, tracer=tracer)
+    repo = providers.Singleton(new_repository)
 
     service = providers.Singleton(
         BaseService,
@@ -39,6 +41,7 @@ class Container(containers.DeclarativeContainer):
             trace_exporter,
             grpc_server,
             db_client,
+            repo,
             broker_consumer,
         ),
         settings=ServiceSettings(name=service_name),

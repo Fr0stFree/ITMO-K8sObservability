@@ -1,6 +1,6 @@
 from concurrent.futures import ThreadPoolExecutor
 
-from grpc.aio import Server, server, ServerInterceptor
+from grpc.aio import Server, ServerInterceptor, server
 
 from common.grpc.interface import IRPCServicer
 from common.grpc.settings import GRPCServerSettings

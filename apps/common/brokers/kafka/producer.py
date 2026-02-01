@@ -2,9 +2,8 @@ import json
 from uuid import uuid4
 
 from aiokafka import AIOKafkaProducer
-from opentelemetry.trace import Tracer
 
-from common.brokers.interface import IProducerInterceptor
+from common.brokers.interface import AbstractProducerInterceptor
 from common.brokers.kafka.settings import KafkaProducerSettings
 from common.logs import LoggerLike
 
@@ -24,9 +23,9 @@ class KafkaProducer:
             client_id=self._client_id,
             value_serializer=lambda value: json.dumps(value).encode("utf-8"),
         )
-        self._interceptor: list[IProducerInterceptor] = []
+        self._interceptor: list[AbstractProducerInterceptor] = []
 
-    def add_interceptor(self, interceptor: IProducerInterceptor) -> None:
+    def add_interceptor(self, interceptor: AbstractProducerInterceptor) -> None:
         self._interceptor.append(interceptor)
 
     async def start(self) -> None:

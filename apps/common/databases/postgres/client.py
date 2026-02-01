@@ -1,7 +1,5 @@
-from collections.abc import AsyncGenerator
-
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
 from common.databases.postgres.settings import PostgresSettings
@@ -36,11 +34,10 @@ class PostgresClient:
         except Exception:
             return False
 
-    async def get_session(self) -> AsyncGenerator[AsyncSession, None]:
-        async with self._async_session() as session:
-            try:
-                yield session
-                await session.commit()
-            except Exception as error:
-                await session.rollback()
-                raise error
+    @property
+    def engine(self) -> AsyncEngine:
+        return self._engine
+
+    @property
+    def sessionmaker(self) -> sessionmaker:
+        return self._async_session

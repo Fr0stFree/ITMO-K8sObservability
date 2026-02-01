@@ -3,7 +3,7 @@ from collections.abc import Awaitable, Callable, MutableMapping
 from typing import Protocol
 
 
-class IProducerInterceptor(ABC):
+class AbstractProducerInterceptor(ABC):
     async def before_send(
         self, destination: str, payload: MutableMapping[str, str], meta: MutableMapping[str, str]
     ) -> None:
@@ -20,7 +20,7 @@ class IProducerInterceptor(ABC):
         pass
 
 
-class IConsumerInterceptor(ABC):
+class AbstractConsumerInterceptor(ABC):
     async def before_receive(
         self, source: str, payload: MutableMapping[str, str], meta: MutableMapping[str, str]
     ) -> None:
@@ -39,9 +39,9 @@ class IConsumerInterceptor(ABC):
 
 class IBrokerProducer(Protocol):
     async def send(self, message: dict, meta: dict) -> None: ...
-    def add_interceptor(self, interceptor: IProducerInterceptor) -> None: ...
+    def add_interceptor(self, interceptor: AbstractProducerInterceptor) -> None: ...
 
 
 class IBrokerConsumer(Protocol):
     def set_message_handler(self, on_message: Callable[[dict], Awaitable[None]]) -> None: ...
-    def add_interceptor(self, interceptor: IConsumerInterceptor) -> None: ...
+    def add_interceptor(self, interceptor: AbstractConsumerInterceptor) -> None: ...

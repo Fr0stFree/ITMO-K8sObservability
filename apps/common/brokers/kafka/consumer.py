@@ -8,7 +8,7 @@ from aiokafka import AIOKafkaConsumer
 from aiokafka.structs import ConsumerRecord
 from opentelemetry.trace import Tracer
 
-from common.brokers.interface import IConsumerInterceptor
+from common.brokers.interface import AbstractConsumerInterceptor
 from common.brokers.kafka.settings import KafkaConsumerSettings
 from common.logs import LoggerLike
 
@@ -28,12 +28,12 @@ class KafkaConsumer:
         )
         self._processor: asyncio.Task | None = None
         self._on_message: Callable[[dict], Awaitable[None]] | None = None
-        self._interceptors: list[IConsumerInterceptor] = []
+        self._interceptors: list[AbstractConsumerInterceptor] = []
 
     def set_message_handler(self, on_message: Callable[[dict], Awaitable[None]]) -> None:
         self._on_message = on_message
 
-    def add_interceptor(self, interceptor: IConsumerInterceptor) -> None:
+    def add_interceptor(self, interceptor: AbstractConsumerInterceptor) -> None:
         self._interceptors.append(interceptor)
 
     async def start(self) -> None:

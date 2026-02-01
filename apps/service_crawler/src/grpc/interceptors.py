@@ -2,13 +2,13 @@ from typing import Any
 
 from dependency_injector.wiring import Provide, inject
 from grpc.aio import ServerInterceptor
+from opentelemetry import context, propagate
 from opentelemetry.trace import Tracer
 from opentelemetry.trace.status import StatusCode
 from prometheus_client import Histogram
 
 from common.logs.interface import LoggerLike
 from service_crawler.src.container import Container
-from opentelemetry import context, propagate
 
 
 # TODO: fix!!!

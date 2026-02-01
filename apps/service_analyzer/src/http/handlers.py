@@ -1,6 +1,8 @@
 from http import HTTPStatus
-from dependency_injector.wiring import Provide, inject
+
 from aiohttp.web import Request, Response, json_response
+from dependency_injector.wiring import Provide, inject
+
 from common.service import IService
 from service_analyzer.src.container import Container
 

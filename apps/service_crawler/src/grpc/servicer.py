@@ -1,16 +1,14 @@
 from dependency_injector.wiring import Provide, inject
 from google.protobuf.empty_pb2 import Empty
-from grpc.aio import ServicerContext
+from grpc.aio import Server, ServicerContext
 from opentelemetry.trace import Span
-from grpc.aio import Server
-from common.databases.redis.client import RedisClient
 
+from common.databases.redis.client import RedisClient
 from protocol.crawler_pb2 import AddTargetRequest, RemoveTargetRequest
 from protocol.crawler_pb2_grpc import (
     CrawlerServiceServicer,
     add_CrawlerServiceServicer_to_server,
 )
-
 from service_crawler.src.container import Container
 from service_crawler.src.crawling.pipeline import CrawlingPipeline
 

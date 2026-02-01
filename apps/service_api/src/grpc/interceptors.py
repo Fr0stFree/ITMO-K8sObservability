@@ -3,13 +3,13 @@ from typing import Any
 
 from dependency_injector.wiring import Provide, inject
 from grpc.aio import ClientCallDetails, UnaryUnaryClientInterceptor
+from opentelemetry import propagate
 from opentelemetry.trace import Tracer
 from opentelemetry.trace.status import StatusCode
 from prometheus_client import Histogram
 
 from common.logs.interface import LoggerLike
 from service_api.src.container import Container
-from opentelemetry import propagate
 
 type UnaryUnaryContinuation = Callable[
     [ClientCallDetails, Any],
@@ -30,11 +30,7 @@ class ObservabilityClientInterceptor(UnaryUnaryClientInterceptor):
         rpc_request_latency: Histogram = Provide[Container.rpc_request_latency],
     ) -> Any:
         details = self._inject_context(client_call_details)
-        method = (
-            details.method.decode()
-            if isinstance(details.method, bytes)
-            else details.method
-        ).split("/")[-1]
+        method = (details.method.decode() if isinstance(details.method, bytes) else details.method).split("/")[-1]
         with tracer.start_as_current_span("grpc.client.request", attributes={"rpc.method": method}) as span:
             with rpc_request_latency.labels(method=method).time():
                 logger.info("Making gRPC request to '%s'", method, extra={"method": method})

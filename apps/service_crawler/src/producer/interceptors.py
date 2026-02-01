@@ -5,12 +5,12 @@ from opentelemetry.propagate import inject as inject_context
 from opentelemetry.trace import Span
 from opentelemetry.trace.status import StatusCode
 
-from common.brokers.interface import IProducerInterceptor
+from common.brokers.interface import AbstractProducerInterceptor
 from common.logs.interface import LoggerLike
 from service_crawler.src.container import Container
 
 
-class ObservabilityProducerInterceptor(IProducerInterceptor):
+class ObservabilityProducerInterceptor(AbstractProducerInterceptor):
 
     @inject
     async def before_send(
@@ -53,3 +53,4 @@ class ObservabilityProducerInterceptor(IProducerInterceptor):
         )
         span.record_exception(exception)
         span.set_status(StatusCode.ERROR)
+        raise exception

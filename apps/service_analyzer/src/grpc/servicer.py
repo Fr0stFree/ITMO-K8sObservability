@@ -1,4 +1,4 @@
-from grpc.aio import ServicerContext, Server
+from grpc.aio import Server, ServicerContext
 
 from protocol.analyzer_pb2 import GetTargetDetailsRequest, GetTargetDetailsResponse
 from protocol.analyzer_pb2_grpc import AnalyzerServiceServicer, add_AnalyzerServiceServicer_to_server
