@@ -7,18 +7,21 @@ from common.grpc import GRPCServer, GRPCServerSettings
 from common.http import HTTPServer, HTTPServerSettings
 from common.logs import LoggingSettings, new_logger
 from common.metrics import MetricsServer, MetricsServerSettings
+from common.service import BaseService, ServiceSettings
 from common.tracing import TraceExporter, TraceExporterSettings
-from service_analyzer.src.rpc import RPCServicer
+from service_analyzer.src.grpc.servicer import RPCServicer
+from service_analyzer.src.settings import AnalyzerServiceSettings
 
 
 class Container(containers.DeclarativeContainer):
-    settings = providers.Configuration()
+    service_name = "analyzer-service"
+    settings = providers.Configuration(pydantic_settings=[AnalyzerServiceSettings()])
 
     # observability
-    logger = providers.Singleton(new_logger, settings=LoggingSettings(name="analyzer-service"))
+    logger = providers.Singleton(new_logger, settings=LoggingSettings(name=service_name))
     metrics_server = providers.Singleton(MetricsServer, settings=MetricsServerSettings(), logger=logger)
     trace_exporter = providers.Singleton(TraceExporter, settings=TraceExporterSettings(), logger=logger)
-    tracer = providers.Singleton(trace.get_tracer, "analyzer-service")
+    tracer = providers.Singleton(trace.get_tracer, service_name)
 
     # components
     http_server = providers.Singleton(HTTPServer, settings=HTTPServerSettings(), logger=logger)
@@ -33,5 +36,16 @@ class Container(containers.DeclarativeContainer):
     db_client = providers.Singleton(PostgresClient, settings=PostgresSettings(), logger=logger)
     broker_consumer = providers.Singleton(KafkaConsumer, settings=KafkaConsumerSettings(), logger=logger, tracer=tracer)
 
-    # domain
-    db_session = providers.Factory(db_client.provided.get_session)
+    service = providers.Singleton(
+        BaseService,
+        components=providers.List(
+            http_server,
+            metrics_server,
+            trace_exporter,
+            grpc_server,
+            db_client,
+            broker_consumer,
+        ),
+        settings=ServiceSettings(name=service_name),
+        logger=logger,
+    )

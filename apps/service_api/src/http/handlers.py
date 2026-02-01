@@ -52,11 +52,9 @@ async def get_target(
     return json_response(response_body, status=HTTPStatus.OK)
 
 
-@inject
 async def list_targets(request: Request) -> Response:
     raise NotImplementedError("Not implemented yet")
 
 
-@inject
 async def delete_target(request: Request) -> Response:
     raise NotImplementedError("Not implemented yet")
