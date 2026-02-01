@@ -1,9 +1,10 @@
 import datetime as dt
 
+from pydantic import Field
 from pydantic_settings import BaseSettings
 
 
 class CrawlerServiceSettings(BaseSettings):
-    service_name: str = "CrawlerService"
-    concurrent_workers: int = 1
-    health_check_timeout: dt.timedelta = dt.timedelta(seconds=2)
+    concurrent_workers: int = Field(default=5, ge=1, le=100, alias="CRAWLER_CONCURRENT_WORKERS")
+    worker_request_timeout: dt.timedelta = Field(default=dt.timedelta(seconds=10), alias="CRAWLER_WORKER_REQUEST_TIMEOUT")
+    health_check_timeout: dt.timedelta = Field(default=dt.timedelta(seconds=2), alias="CRAWLER_HEALTH_CHECK_TIMEOUT")
