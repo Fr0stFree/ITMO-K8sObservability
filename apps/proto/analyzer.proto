@@ -2,8 +2,20 @@ syntax = "proto3";
 
 package analyzer;
 
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+
 service AnalyzerService {
   rpc GetTargetDetails (GetTargetDetailsRequest) returns (GetTargetDetailsResponse);
+  rpc ListTargets (ListTargetsRequest) returns (ListTargetsResponse);
+  rpc DeleteTarget (GetTargetDetailsRequest) returns (google.protobuf.Empty);
+}
+
+message Target {
+  string                    id         = 1;
+  string                    url        = 2;
+  string                    status     = 3;
+  google.protobuf.Timestamp checked_at = 4;
 }
 
 message GetTargetDetailsRequest {
@@ -11,8 +23,18 @@ message GetTargetDetailsRequest {
 }
 
 message GetTargetDetailsResponse {
+  Target target = 1;
+}
+
+message ListTargetsRequest {
+  int32 limit  = 1;
+  int32 offset = 2;
+}
+
+message ListTargetsResponse {
+  repeated Target targets = 1;
+}
+
+message DeleteTargetRequest {
   string id = 1;
-  string url = 2;
-  string status = 3;
-  int64 checked_at = 4;
 }

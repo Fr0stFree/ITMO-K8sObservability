@@ -1,25 +1,27 @@
-import datetime as dt
 
 from dependency_injector.wiring import Provide, inject
 from opentelemetry.trace import Tracer
 
 from common.logs.interface import LoggerLike
 from service_analyzer.src.container import Container
-from service_analyzer.src.db.repo import AnalyzerRepository
+from service_analyzer.src.db.repo import Repository
+from service_analyzer.src.models import TargetUpdate
 
 
 @inject
 async def on_new_message(
     message: dict,
-    repo: AnalyzerRepository = Provide[Container.repo],
+    repo: Repository = Provide[Container.repository],
     tracer: Tracer = Provide[Container.tracer],
     logger: LoggerLike = Provide[Container.logger],
 ) -> None:
     with tracer.start_as_current_span("consumer.process_message"):
-        await repo.upsert_target(
-            status=message["status"],
+        target = TargetUpdate(
             url=message["url"],
-            checked_at=dt.datetime.fromisoformat(message["updated_at"]),
+            status=message["status"],
+            checked_at=message["updated_at"],
             comment=message.get("comment", ""),
         )
-        logger.info(f"Processed message for URL: {message['url']}")
+        await repo.update_target(target)
+
+    logger.info("Processed target '%s'", message["url"])

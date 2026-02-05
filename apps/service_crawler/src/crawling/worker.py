@@ -1,7 +1,7 @@
 import asyncio
+import datetime as dt
 from collections.abc import Iterable
 from contextlib import suppress
-import datetime as dt
 from http import HTTPMethod
 
 from aiohttp import ClientSession, ClientTimeout
@@ -122,10 +122,10 @@ class Worker:
                 updated_at=dt.datetime.now(tz=dt.UTC).isoformat(),
                 comment=str(error),
             )
-            # span.record_exception(error)
+            span.record_exception(error)
             span.set_status(StatusCode.ERROR)
 
-        await asyncio.sleep(5)  # TODO: remove
+        await asyncio.sleep(2)  # TODO: remove
         return result
 
     async def stop(self) -> None:

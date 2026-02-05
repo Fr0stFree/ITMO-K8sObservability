@@ -3,7 +3,6 @@ from google.protobuf.empty_pb2 import Empty
 from grpc.aio import Server, ServicerContext
 from opentelemetry.trace import Span
 
-from common.databases.redis.client import RedisClient
 from protocol.crawler_pb2 import AddTargetRequest, RemoveTargetRequest
 from protocol.crawler_pb2_grpc import (
     CrawlerServiceServicer,
@@ -11,6 +10,7 @@ from protocol.crawler_pb2_grpc import (
 )
 from service_crawler.src.container import Container
 from service_crawler.src.crawling.pipeline import CrawlingPipeline
+from service_crawler.src.db.repo import Repository
 
 
 class RPCServicer(CrawlerServiceServicer):
@@ -21,10 +21,10 @@ class RPCServicer(CrawlerServiceServicer):
         request: AddTargetRequest,
         context: ServicerContext,
         span: Span = Provide[Container.current_span],
-        db_client: RedisClient = Provide[Container.db_client],
+        repo: Repository = Provide[Container.repository],
         pipeline: CrawlingPipeline = Provide[Container.crawling_pipeline],
     ) -> Empty:
-        await db_client.redis.sadd("crawling_urls", request.target_url)
+        await repo.add_target(request.target_url)
         pipeline.register_urls([request.target_url])
         span.set_attribute("target.url", request.target_url)
         return Empty()
@@ -35,10 +35,10 @@ class RPCServicer(CrawlerServiceServicer):
         request: RemoveTargetRequest,
         context: ServicerContext,
         span: Span = Provide[Container.current_span],
-        db_client: RedisClient = Provide[Container.db_client],
+        repo: Repository = Provide[Container.repository],
         pipeline: CrawlingPipeline = Provide[Container.crawling_pipeline],
     ) -> Empty:
-        await db_client.redis.srem("crawling_urls", request.target_url)
+        await repo.remove_target(request.target_url)
         pipeline.unregister_urls([request.target_url])
         span.set_attribute("target.url", request.target_url)
         return Empty()

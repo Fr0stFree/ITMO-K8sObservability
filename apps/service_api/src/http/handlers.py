@@ -7,9 +7,14 @@ from google.protobuf.json_format import MessageToDict
 from opentelemetry.trace import Span
 
 from common.service.service import BaseService
-from protocol.analyzer_pb2 import GetTargetDetailsRequest
+from protocol.analyzer_pb2 import (
+    GetTargetDetailsRequest,
+    GetTargetDetailsResponse,
+    ListTargetsRequest,
+    DeleteTargetRequest,
+)
 from protocol.analyzer_pb2_grpc import AnalyzerServiceStub
-from protocol.crawler_pb2 import AddTargetRequest
+from protocol.crawler_pb2 import AddTargetRequest, RemoveTargetRequest
 from protocol.crawler_pb2_grpc import CrawlerServiceStub
 from service_api.src.container import Container
 
@@ -55,6 +60,7 @@ async def get_target(
 
     rpc_request = GetTargetDetailsRequest(id=target_id)
     rpc_response = await analyzer_stub.GetTargetDetails(rpc_request)
+
     response_body = MessageToDict(rpc_response, preserving_proto_field_name=True)
     return json_response(response_body, status=HTTPStatus.OK)
 
@@ -69,9 +75,17 @@ async def list_targets(
 ) -> Response:
     limit = request.query.get("limit", pagination_default_limit)
     offset = request.query.get("offset", 0)
+
     span.set_attribute("pagination.limit", limit)
     span.set_attribute("pagination.offset", offset)
-    ...  # Implementation goes here
+
+    rpc_request = ListTargetsRequest(limit=int(limit), offset=int(offset))
+    rpc_response = await analyzer_stub.ListTargets(rpc_request)
+    print(f"RPC Response: {rpc_response}")  # Debug print
+    if rpc_response.targets:
+        response_body = MessageToDict(rpc_response, preserving_proto_field_name=True)
+        return json_response(response_body, status=HTTPStatus.OK)
+
     return json_response({"targets": []}, status=HTTPStatus.OK)
 
 
@@ -80,10 +94,16 @@ async def list_targets(
 async def delete_target(
     request: Request,
     crawler_stub: CrawlerServiceStub = Provide[Container.crawler_stub],
+    analyzer_stub: AnalyzerServiceStub = Provide[Container.analyzer_stub],
 ) -> Response:
     target_id = request.match_info.get("target_id")
     if not target_id:
         return json_response({"error": "missing url id in path"}, status=HTTPStatus.BAD_REQUEST)
 
-    ...  # Implementation goes here
+    crawler_request = RemoveTargetRequest(target_url=target_id)
+    await crawler_stub.RemoveTarget(crawler_request)
+
+    analyzer_request = DeleteTargetRequest(id=target_id)
+    await analyzer_stub.DeleteTarget(analyzer_request)
+
     return Response(status=HTTPStatus.NO_CONTENT)

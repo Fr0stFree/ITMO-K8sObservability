@@ -1,6 +1,7 @@
 from http import HTTPMethod
 
-from aiohttp.typedefs import Handler as IHttpHandler, Middleware as IHttpMiddleware
+from aiohttp.typedefs import Handler as IHttpHandler
+from aiohttp.typedefs import Middleware as IHttpMiddleware
 from aiohttp.web import Application, AppRunner, RouteTableDef, TCPSite
 
 from common.http.settings import HTTPServerSettings

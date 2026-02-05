@@ -9,10 +9,10 @@ from opentelemetry.propagate import extract as extract_context
 from opentelemetry.trace import Tracer
 
 from common.brokers.interface import IBrokerProducer
-from common.databases.redis.client import RedisClient
 from common.logs import LoggerLike
 from service_crawler.src.container import Container
 from service_crawler.src.crawling.worker import Worker
+from service_crawler.src.db.repo import Repository
 
 
 class CrawlingPipeline:
@@ -55,15 +55,15 @@ class CrawlingPipeline:
     @inject
     async def start(
         self,
-        db: RedisClient = Provide[Container.db_client],
+        repo: Repository = Provide[Container.repository],
         logger: LoggerLike = Provide[Container.logger],
     ) -> None:
-        urls = await db.redis.smembers("crawling_urls")
-        logger.info("Fetched %d URL(s) to crawl from Redis", len(urls))
-        if not urls:
-            raise RuntimeError("No URLs to crawl found in Redis")
+        targets = await repo.get_targets()
+        logger.info("Starting crawling pipeline with %d targets...", len(targets))
+        if not targets:
+            raise RuntimeError("No URLs to crawl found")
 
-        self.register_urls(urls)
+        self.register_urls(targets)
 
         logger.info("Starting crawling pipeline with %d worker(s)...", len(self._workers))
         self._processor = asyncio.create_task(self._process_urls())
@@ -80,6 +80,7 @@ class CrawlingPipeline:
         self._processor.cancel()
         with suppress(asyncio.CancelledError):
             await self._processor
+
         self._processor = None
 
     async def is_healthy(self) -> bool:

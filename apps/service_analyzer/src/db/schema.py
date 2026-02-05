@@ -1,5 +1,5 @@
-from datetime import datetime
 import uuid
+from datetime import datetime
 
 from sqlalchemy import DateTime, ForeignKey, String, Text, func
 from sqlalchemy.dialects.postgresql import UUID
@@ -10,7 +10,7 @@ class Base(DeclarativeBase):
     pass
 
 
-class Target(Base):
+class TargetDB(Base):
     __tablename__ = "targets"
 
     id: Mapped[uuid.UUID] = mapped_column(
@@ -27,7 +27,7 @@ class Target(Base):
     )
 
 
-class TargetStatus(Base):
+class TargetStatusDB(Base):
     __tablename__ = "target_statuses"
 
     target_id: Mapped[uuid.UUID] = mapped_column(

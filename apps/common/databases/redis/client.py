@@ -1,9 +1,8 @@
 from contextlib import suppress
 
-from redis.asyncio import Redis
-
 from common.databases.redis.settings import RedisClientSettings
 from common.logs import LoggerLike
+from redis.asyncio import Redis
 
 
 class RedisClient:

@@ -1,7 +1,8 @@
 from http import HTTPMethod
 from typing import Protocol
 
-from aiohttp.typedefs import Handler as IHttpHandler, Middleware as IHttpMiddleware
+from aiohttp.typedefs import Handler as IHttpHandler
+from aiohttp.typedefs import Middleware as IHttpMiddleware
 from aiohttp.web import RouteTableDef
 
 

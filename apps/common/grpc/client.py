@@ -1,6 +1,5 @@
-from grpc.aio import Channel, ClientInterceptor, insecure_channel
-
 from common.logs import LoggerLike
+from grpc.aio import Channel, ClientInterceptor, insecure_channel
 
 
 class GRPCClient:

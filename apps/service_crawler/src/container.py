@@ -11,7 +11,7 @@ from common.metrics import MetricsServer, MetricsServerSettings
 from common.service.service import BaseService
 from common.service.settings import ServiceSettings
 from common.tracing import TraceExporter, TraceExporterSettings
-from service_crawler.src.factories import new_crawling_pipeline, new_rpc_servicer
+from service_crawler.src.factories import new_crawling_pipeline, new_repository, new_rpc_servicer
 from service_crawler.src.settings import CrawlerServiceSettings
 
 
@@ -47,6 +47,7 @@ class Container(containers.DeclarativeContainer):
     broker_producer = providers.Singleton(KafkaProducer, settings=KafkaProducerSettings(), logger=logger)
     db_client = providers.Singleton(RedisClient, settings=RedisClientSettings(), logger=logger)
     crawling_pipeline = providers.Singleton(new_crawling_pipeline, concurrent_workers=settings.concurrent_workers)
+    repository = providers.Singleton(new_repository)
 
     service = providers.Singleton(
         BaseService,
@@ -58,6 +59,7 @@ class Container(containers.DeclarativeContainer):
             db_client,
             broker_producer,
             crawling_pipeline,
+            repository,
         ),
         settings=ServiceSettings(name=service_name),
         logger=logger,

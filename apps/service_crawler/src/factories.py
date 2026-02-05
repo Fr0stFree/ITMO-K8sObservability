@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from service_analyzer.src.grpc.servicer import RPCServicer
     from service_crawler.src.crawling.pipeline import CrawlingPipeline
+    from service_crawler.src.db.repo import Repository
 
 
 def new_crawling_pipeline(concurrent_workers: int) -> "CrawlingPipeline":
@@ -18,3 +19,8 @@ def new_rpc_servicer() -> "RPCServicer":
     from service_crawler.src.grpc.servicer import RPCServicer
 
     return RPCServicer()
+
+def new_repository() -> "Repository":
+    from service_crawler.src.db.repo import Repository
+
+    return Repository()
