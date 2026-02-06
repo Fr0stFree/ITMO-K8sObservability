@@ -47,8 +47,12 @@ class Container(containers.DeclarativeContainer):
 
     # components
     http_server = providers.Singleton(HTTPServer, settings=HTTPServerSettings(), logger=logger)
-    crawler_client = providers.Singleton(GRPCClient, address=settings.crawler_target_address, logger=logger, stub_class=CrawlerServiceStub)
-    analyzer_client = providers.Singleton(GRPCClient, address=settings.analyzer_target_address, logger=logger, stub_class=AnalyzerServiceStub)
+    crawler_client = providers.Singleton(
+        GRPCClient, address=settings.crawler_target_address, logger=logger, stub_class=CrawlerServiceStub
+    )
+    analyzer_client = providers.Singleton(
+        GRPCClient, address=settings.analyzer_target_address, logger=logger, stub_class=AnalyzerServiceStub
+    )
 
     service = providers.Singleton(
         BaseService,
@@ -60,4 +64,3 @@ class Container(containers.DeclarativeContainer):
         settings=ServiceSettings(name=service_name),
         logger=logger,
     )
-

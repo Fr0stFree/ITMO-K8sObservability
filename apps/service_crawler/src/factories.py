@@ -20,6 +20,7 @@ def new_rpc_servicer() -> "RPCServicer":
 
     return RPCServicer()
 
+
 def new_repository() -> "Repository":
     from service_crawler.src.db.repo import Repository
 

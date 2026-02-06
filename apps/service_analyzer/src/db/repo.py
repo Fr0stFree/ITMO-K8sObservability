@@ -1,4 +1,3 @@
-
 from dependency_injector.wiring import Provide, inject
 from sqlalchemy import func
 from sqlalchemy.ext.asyncio import AsyncEngine
@@ -126,4 +125,3 @@ class Repository:
             if target:
                 await session.delete(target)
                 await session.commit()
-
