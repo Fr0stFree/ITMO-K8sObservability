@@ -20,8 +20,8 @@ async def on_new_message(
             url=message["url"],
             status=message["status"],
             checked_at=message["updated_at"],
-            comment=message.get("comment", ""),
+            comment=message.get("comment") or "",
         )
         await repo.update_target(target)
 
-    logger.info("Processed target '%s'", message["url"])
+    logger.info("Processed target url '%s'", message["url"], extra={"target.url": target.url})

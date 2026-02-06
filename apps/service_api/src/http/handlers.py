@@ -5,11 +5,12 @@ from aiohttp.web import Request, Response, RouteTableDef, json_response
 from dependency_injector.wiring import Provide, inject
 from google.protobuf.json_format import MessageToDict
 from opentelemetry.trace import Span
-
+from grpc.aio import AioRpcError
+from grpc import StatusCode
+from common.grpc.client import GRPCClient
 from common.service.service import BaseService
 from protocol.analyzer_pb2 import (
     GetTargetDetailsRequest,
-    GetTargetDetailsResponse,
     ListTargetsRequest,
     DeleteTargetRequest,
 )
@@ -33,7 +34,9 @@ async def health(request: Request, service: BaseService = Provide[Container.serv
 
 @routes.post("/targets")
 @inject
-async def add_target(request: Request, crawler_stub: CrawlerServiceStub = Provide[Container.crawler_stub]) -> Response:
+async def add_target(
+    request: Request, crawler: GRPCClient[CrawlerServiceStub] = Provide[Container.crawler_client]
+) -> Response:
     try:
         body = await request.json()
     except JSONDecodeError:
@@ -44,7 +47,9 @@ async def add_target(request: Request, crawler_stub: CrawlerServiceStub = Provid
         return json_response({"error": "missing targetUrl field"}, status=HTTPStatus.BAD_REQUEST)
 
     rpc_request = AddTargetRequest(target_url=target_url)
-    await crawler_stub.AddTarget(rpc_request)
+    async with crawler as client:
+        await client.AddTarget(rpc_request)
+
     return Response(status=HTTPStatus.CREATED)
 
 
@@ -52,15 +57,23 @@ async def add_target(request: Request, crawler_stub: CrawlerServiceStub = Provid
 @inject
 async def get_target(
     request: Request,
-    analyzer_stub: AnalyzerServiceStub = Provide[Container.analyzer_stub],
+    analyzer: GRPCClient[AnalyzerServiceStub] = Provide[Container.analyzer_client],
 ) -> Response:
     target_id = request.match_info.get("target_id")
     if not target_id:
         return json_response({"error": "missing url id in path"}, status=HTTPStatus.BAD_REQUEST)
 
     rpc_request = GetTargetDetailsRequest(id=target_id)
-    rpc_response = await analyzer_stub.GetTargetDetails(rpc_request)
-
+    async with analyzer as client:
+        try:
+            rpc_response = await client.GetTargetDetails(rpc_request)
+        except AioRpcError as error:
+            match error.code():
+                case StatusCode.NOT_FOUND:
+                    return json_response({"error": "target not found"}, status=HTTPStatus.NOT_FOUND)
+                case _:
+                    raise error
+            
     response_body = MessageToDict(rpc_response, preserving_proto_field_name=True)
     return json_response(response_body, status=HTTPStatus.OK)
 
@@ -69,7 +82,7 @@ async def get_target(
 @inject
 async def list_targets(
     request: Request,
-    analyzer_stub: AnalyzerServiceStub = Provide[Container.analyzer_stub],
+    analyzer: GRPCClient[AnalyzerServiceStub] = Provide[Container.analyzer_client],
     pagination_default_limit: int = Provide[Container.settings.pagination_default_limit],
     span: Span = Provide[Container.current_span],
 ) -> Response:
@@ -80,30 +93,30 @@ async def list_targets(
     span.set_attribute("pagination.offset", offset)
 
     rpc_request = ListTargetsRequest(limit=int(limit), offset=int(offset))
-    rpc_response = await analyzer_stub.ListTargets(rpc_request)
-    print(f"RPC Response: {rpc_response}")  # Debug print
-    if rpc_response.targets:
-        response_body = MessageToDict(rpc_response, preserving_proto_field_name=True)
-        return json_response(response_body, status=HTTPStatus.OK)
+    async with analyzer as client:
+        rpc_response = await client.ListTargets(rpc_request)
 
-    return json_response({"targets": []}, status=HTTPStatus.OK)
+    response_body = MessageToDict(rpc_response)
+    return json_response(response_body, status=HTTPStatus.OK)
 
 
 @routes.delete("/targets/{target_id}")
 @inject
 async def delete_target(
     request: Request,
-    crawler_stub: CrawlerServiceStub = Provide[Container.crawler_stub],
-    analyzer_stub: AnalyzerServiceStub = Provide[Container.analyzer_stub],
+    crawler: GRPCClient[CrawlerServiceStub] = Provide[Container.crawler_client],
+    analyzer: GRPCClient[AnalyzerServiceStub] = Provide[Container.analyzer_client],
 ) -> Response:
     target_id = request.match_info.get("target_id")
     if not target_id:
         return json_response({"error": "missing url id in path"}, status=HTTPStatus.BAD_REQUEST)
 
     crawler_request = RemoveTargetRequest(target_url=target_id)
-    await crawler_stub.RemoveTarget(crawler_request)
+    async with crawler as client:
+        await client.RemoveTarget(crawler_request)
 
     analyzer_request = DeleteTargetRequest(id=target_id)
-    await analyzer_stub.DeleteTarget(analyzer_request)
+    async with analyzer as client:
+        await client.DeleteTarget(analyzer_request)
 
     return Response(status=HTTPStatus.NO_CONTENT)

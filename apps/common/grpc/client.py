@@ -2,29 +2,21 @@ from common.logs import LoggerLike
 from grpc.aio import Channel, ClientInterceptor, insecure_channel
 
 
-class GRPCClient:
-    def __init__(self, address: str, logger: LoggerLike) -> None:
+class GRPCClient[V]:
+    def __init__(self, address: str, stub_class: type[V], logger: LoggerLike) -> None:
         self._address = address
         self._logger = logger
+        self._stub_class = stub_class
 
-        self._channel: Channel
         self._interceptors = []
 
     def add_interceptor(self, interceptor: ClientInterceptor) -> None:
         self._interceptors.append(interceptor)
 
-    @property
-    def channel(self) -> Channel:
-        return self._channel
-
-    async def start(self) -> None:
-        self._logger.info("Creating gRPC channel to %s...", self._address)
+    async def __aenter__(self) -> V:
         self._channel = insecure_channel(self._address, interceptors=self._interceptors)
-
-    async def stop(self) -> None:
-        self._logger.info("Closing gRPC channel to %s...", self._address)
+        self._stub = self._stub_class(self._channel)
+        return self._stub
+    
+    async def __aexit__(self, exc_type: type[BaseException], exc_val: BaseException, exc_tb) -> None:
         await self._channel.close()
-
-    async def is_healthy(self) -> bool:
-        # TODO: implement health check logic
-        return True
