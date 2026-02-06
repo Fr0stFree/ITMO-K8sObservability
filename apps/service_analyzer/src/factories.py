@@ -1,7 +1,5 @@
 from typing import TYPE_CHECKING
 
-
-
 if TYPE_CHECKING:
     from service_analyzer.src.db.repo import Repository
     from service_crawler.src.grpc.servicer import RPCServicer

@@ -1,7 +1,7 @@
 import asyncio
-import datetime as dt
 from collections.abc import Iterable
 from contextlib import suppress
+import datetime as dt
 from http import HTTPMethod
 
 from aiohttp import ClientSession, ClientTimeout

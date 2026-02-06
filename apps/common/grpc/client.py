@@ -1,5 +1,6 @@
+from grpc.aio import ClientInterceptor, insecure_channel
+
 from common.logs import LoggerLike
-from grpc.aio import Channel, ClientInterceptor, insecure_channel
 
 
 class GRPCClient[V]:
@@ -17,6 +18,6 @@ class GRPCClient[V]:
         self._channel = insecure_channel(self._address, interceptors=self._interceptors)
         self._stub = self._stub_class(self._channel)
         return self._stub
-    
+
     async def __aexit__(self, exc_type: type[BaseException], exc_val: BaseException, exc_tb) -> None:
         await self._channel.close()

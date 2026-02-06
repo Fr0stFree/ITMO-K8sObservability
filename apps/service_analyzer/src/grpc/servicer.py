@@ -1,8 +1,7 @@
 from dependency_injector.wiring import Provide, inject
-
-
 from grpc import StatusCode
 from grpc.aio import Server, ServicerContext
+from opentelemetry.trace import Span
 
 from common.logs.interface import LoggerLike
 from protocol.analyzer_pb2 import (
@@ -11,7 +10,6 @@ from protocol.analyzer_pb2 import (
     ListTargetsRequest,
     ListTargetsResponse,
 )
-from opentelemetry.trace import Span
 from protocol.analyzer_pb2_grpc import AnalyzerServiceServicer, add_AnalyzerServiceServicer_to_server
 from service_analyzer.src.container import Container
 from service_analyzer.src.db.repo import Repository

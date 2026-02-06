@@ -1,9 +1,9 @@
 import datetime as dt
 
-from pydantic import BaseModel
-from protocol.analyzer_pb2 import Target as TargetProto
-
 from google.protobuf.timestamp_pb2 import Timestamp
+from pydantic import BaseModel
+
+from protocol.analyzer_pb2 import Target as TargetProto
 
 
 class BaseTarget(BaseModel):

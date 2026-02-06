@@ -1,6 +1,6 @@
 import asyncio
-import signal
 from collections.abc import Iterable
+import signal
 
 from common.logs import LoggerLike
 from common.service.interface import IServiceComponent

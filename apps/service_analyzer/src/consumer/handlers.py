@@ -1,4 +1,3 @@
-
 from dependency_injector.wiring import Provide, inject
 from opentelemetry.trace import Tracer
 

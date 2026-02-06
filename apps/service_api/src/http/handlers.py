@@ -4,15 +4,16 @@ from json import JSONDecodeError
 from aiohttp.web import Request, Response, RouteTableDef, json_response
 from dependency_injector.wiring import Provide, inject
 from google.protobuf.json_format import MessageToDict
-from opentelemetry.trace import Span
-from grpc.aio import AioRpcError
 from grpc import StatusCode
+from grpc.aio import AioRpcError
+from opentelemetry.trace import Span
+
 from common.grpc.client import GRPCClient
 from common.service.service import BaseService
 from protocol.analyzer_pb2 import (
+    DeleteTargetRequest,
     GetTargetDetailsRequest,
     ListTargetsRequest,
-    DeleteTargetRequest,
 )
 from protocol.analyzer_pb2_grpc import AnalyzerServiceStub
 from protocol.crawler_pb2 import AddTargetRequest, RemoveTargetRequest
@@ -73,7 +74,7 @@ async def get_target(
                     return json_response({"error": "target not found"}, status=HTTPStatus.NOT_FOUND)
                 case _:
                     raise error
-            
+
     response_body = MessageToDict(rpc_response, preserving_proto_field_name=True)
     return json_response(response_body, status=HTTPStatus.OK)
 
