@@ -1,6 +1,10 @@
-.venv
 .vscode/
+
+.venv
 .ruff_cache/
 .mypy_cache/
 __pycache__/
+
 apps/protocol/
+
+logs/

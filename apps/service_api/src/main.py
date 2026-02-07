@@ -18,6 +18,7 @@ async def main(
 ) -> None:
     http_server.add_routes(handlers.routes)
     http_server.add_middleware(middleware.observability)
+    http_server.add_middleware(middleware.error_handling)
     crawler_client.add_interceptor(interceptors.ObservabilityClientInterceptor())
 
     await service.run()

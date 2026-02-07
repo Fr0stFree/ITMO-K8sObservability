@@ -3,13 +3,12 @@ from http import HTTPMethod
 from aiohttp.typedefs import Handler as IHttpHandler, Middleware as IHttpMiddleware
 from aiohttp.web import Application, AppRunner, RouteTableDef, TCPSite
 
-from common.http.settings import HTTPServerSettings
 from common.logs import LoggerLike
 
 
 class HTTPServer:
-    def __init__(self, settings: HTTPServerSettings, logger: LoggerLike) -> None:
-        self._settings = settings
+    def __init__(self, port: int, logger: LoggerLike) -> None:
+        self._port = port
         self._logger = logger
         self._app = Application(logger=logger)
         self._runner = AppRunner(self._app)
@@ -37,9 +36,9 @@ class HTTPServer:
         return self._runner.server is not None
 
     async def start(self) -> None:
-        self._logger.info("Starting the http server on port %d...", self._settings.port)
+        self._logger.info("Starting the http server on port %d...", self._port)
         await self._runner.setup()
-        self._site = TCPSite(self._runner, "0.0.0.0", self._settings.port)
+        self._site = TCPSite(self._runner, "0.0.0.0", self._port)
         await self._site.start()
 
     async def stop(self) -> None:

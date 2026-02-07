@@ -3,27 +3,44 @@ from opentelemetry import trace
 from prometheus_client import Counter, Histogram
 
 from common.grpc import GRPCClient
-from common.http import HTTPServer, HTTPServerSettings
-from common.logs import LoggingSettings, new_logger
-from common.metrics import MetricsServer, MetricsServerSettings
+from common.http import HTTPServer
+from common.logs import new_logger
+from common.metrics import MetricsServer
 from common.service.service import BaseService
-from common.service.settings import ServiceSettings
-from common.tracing import TraceExporter, TraceExporterSettings
+from common.tracing import TraceExporter
 from protocol.analyzer_pb2_grpc import AnalyzerServiceStub
 from protocol.crawler_pb2_grpc import CrawlerServiceStub
 from service_api.src.settings import APIServiceSettings
 
 
 class Container(containers.DeclarativeContainer):
-    service_name = "api-service"
     settings = providers.Configuration(pydantic_settings=[APIServiceSettings()])
 
     # observability
-    logger = providers.Singleton(new_logger, settings=LoggingSettings(name=service_name))
-    tracer = providers.Singleton(trace.get_tracer, service_name)
+    logger = providers.Singleton(
+        new_logger,
+        name=settings.service_name,
+        format=settings.logging.format,
+        file_path=settings.logging.file_path,
+        file_max_bytes=settings.logging.file_max_bytes,
+        file_backup_count=settings.logging.file_backup_count,
+        level=settings.logging.level,
+    )
+    tracer = providers.Singleton(trace.get_tracer, settings.service_name)
     current_span = providers.Factory(trace.get_current_span)
-    metrics_server = providers.Singleton(MetricsServer, settings=MetricsServerSettings(), logger=logger)
-    trace_exporter = providers.Singleton(TraceExporter, settings=TraceExporterSettings(), logger=logger)
+    metrics_server = providers.Singleton(
+        MetricsServer,
+        port=settings.metrics_server.port,
+        logger=logger,
+    )
+    trace_exporter = providers.Singleton(
+        TraceExporter,
+        name=settings.service_name,
+        endpoint=settings.trace_exporter.otlp_endpoint,
+        protocol=settings.trace_exporter.protocol,
+        is_enabled=settings.trace_exporter.enabled,
+        logger=logger,
+    )
 
     # metrics
     requests_counter = providers.Singleton(
@@ -46,12 +63,12 @@ class Container(containers.DeclarativeContainer):
     )
 
     # components
-    http_server = providers.Singleton(HTTPServer, settings=HTTPServerSettings(), logger=logger)
+    http_server = providers.Singleton(HTTPServer, port=settings.http_server.port, logger=logger)
     crawler_client = providers.Singleton(
-        GRPCClient, address=settings.crawler_target_address, logger=logger, stub_class=CrawlerServiceStub
+        GRPCClient, address=settings.crawler_client.address, logger=logger, stub_class=CrawlerServiceStub
     )
     analyzer_client = providers.Singleton(
-        GRPCClient, address=settings.analyzer_target_address, logger=logger, stub_class=AnalyzerServiceStub
+        GRPCClient, address=settings.analyzer_client.address, logger=logger, stub_class=AnalyzerServiceStub
     )
 
     service = providers.Singleton(
@@ -61,6 +78,7 @@ class Container(containers.DeclarativeContainer):
             metrics_server,
             trace_exporter,
         ),
-        settings=ServiceSettings(name=service_name),
+        health_check_timeout=settings.health_check_timeout,
+        name=settings.service_name,
         logger=logger,
     )
