@@ -11,11 +11,27 @@ service AnalyzerService {
   rpc DeleteTarget (GetTargetDetailsRequest) returns (google.protobuf.Empty);
 }
 
-message Target {
+message TargetSummary {
   string                    id         = 1;
   string                    url        = 2;
   string                    status     = 3;
   google.protobuf.Timestamp checked_at = 4;
+  string                    comment    = 5;
+  google.protobuf.Timestamp created_at = 6;
+}
+
+message TargetDetails {
+  message HistoryItem {
+    string                    status     = 1;
+    google.protobuf.Timestamp checked_at = 2;
+    string                    comment    = 3;
+  }
+
+  string                    id         = 1;
+  string                    url        = 2;
+  google.protobuf.Timestamp created_at = 3;
+  repeated HistoryItem      history    = 4;
+
 }
 
 message GetTargetDetailsRequest {
@@ -23,7 +39,7 @@ message GetTargetDetailsRequest {
 }
 
 message GetTargetDetailsResponse {
-  Target target = 1;
+  TargetDetails target = 1;
 }
 
 message ListTargetsRequest {
@@ -32,7 +48,7 @@ message ListTargetsRequest {
 }
 
 message ListTargetsResponse {
-  repeated Target targets = 1;
+  repeated TargetSummary targets = 1;
 }
 
 message DeleteTargetRequest {

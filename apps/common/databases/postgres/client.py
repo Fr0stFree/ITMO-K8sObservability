@@ -1,6 +1,5 @@
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, create_async_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
 
 from common.databases.postgres.settings import PostgresSettings
 from common.logs import LoggerLike
@@ -15,7 +14,7 @@ class PostgresClient:
             echo=settings.should_log_statements,
             future=True,
         )
-        self._async_session = sessionmaker(self._engine, class_=AsyncSession, expire_on_commit=False)
+        self._async_session = async_sessionmaker(self._engine, class_=AsyncSession, expire_on_commit=False)
 
     async def start(self) -> None:
         self._logger.info("Connecting to postgres on %s:%s...", self._settings.host, self._settings.port)
@@ -39,5 +38,5 @@ class PostgresClient:
         return self._engine
 
     @property
-    def sessionmaker(self) -> sessionmaker:
+    def sessionmaker(self) -> async_sessionmaker[AsyncSession]:
         return self._async_session

@@ -27,20 +27,21 @@ class TargetDB(Base):
     )
 
 
-class TargetStatusDB(Base):
-    __tablename__ = "target_statuses"
+class TargetCheckDB(Base):
+    __tablename__ = "target_checks"
 
-    target_id: Mapped[uuid.UUID] = mapped_column(
+    id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
-        ForeignKey("targets.id"),
         primary_key=True,
-        nullable=False,
+        default=uuid.uuid4,
+    )
+    target_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("targets.id", ondelete="CASCADE"), nullable=False, index=True
     )
     status: Mapped[str] = mapped_column(String(50), nullable=False)
     checked_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
-        primary_key=True,
         nullable=False,
     )
-    comments: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    comment: Mapped[str] = mapped_column(Text, nullable=False, default="")
