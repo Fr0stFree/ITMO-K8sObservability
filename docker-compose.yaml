@@ -1,4 +1,5 @@
 version: "3.9"
+name: pulse-hub
 
 services:
   # otel-collector:
@@ -25,18 +26,50 @@ services:
   #     - ./prometheus.yml:/etc/prometheus/prometheus.yml
   #   ports:
   #     - "9090:9090"
+  loki:
+    image: grafana/loki:2.9.6
+    container_name: loki
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/loki.yaml
+    volumes:
+      - ./infra/loki/config.yaml:/etc/loki/loki.yaml
+      - ./loki-data:/loki
+
+  promtail:
+    image: grafana/promtail:2.9.6
+    container_name: promtail
+    volumes:
+      - ./infra/promtail/config.yaml:/etc/promtail/promtail.yaml
+      - ./logs:/var/log/app:ro
+    command: -config.file=/etc/promtail/promtail.yaml
+    depends_on:
+      - loki
+
+  grafana:
+    image: grafana/grafana:10.4.2
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_SERVER_ROOT_URL=http://localhost:3000
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel,grafana-clock-panel
+    depends_on:
+      - loki
 
   broker:
     image: apache/kafka:latest
     container_name: kafka-broker
     ports:
-      - "9092:9092"  # Важно: пробрасываем порт на хост
+      - "9092:9092"
       - "9093:9093"
     environment:
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: broker,controller
       KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092  # Для хоста
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
       KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093

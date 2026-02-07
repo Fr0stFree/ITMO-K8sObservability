@@ -8,3 +8,5 @@ __pycache__/
 apps/protocol/
 
 logs/
+
+loki-data/
