@@ -2,9 +2,9 @@ from http import HTTPStatus
 
 from aiohttp import web
 from aiohttp.typedefs import Handler as IHttpHandler
-from grpc.aio import AioRpcError
-from grpc import StatusCode
 from dependency_injector.wiring import Provide, inject
+from grpc import StatusCode
+from grpc.aio import AioRpcError
 from opentelemetry.trace import Tracer
 from opentelemetry.trace.status import StatusCode as TraceStatusCode
 from prometheus_client import Counter, Histogram

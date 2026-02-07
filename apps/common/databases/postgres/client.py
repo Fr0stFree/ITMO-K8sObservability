@@ -1,23 +1,29 @@
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
 
-from common.databases.postgres.settings import PostgresSettings
 from common.logs import LoggerLike
 
 
 class PostgresClient:
-    def __init__(self, settings: PostgresSettings, logger: LoggerLike) -> None:
+    def __init__(self, user: str, password: str, host: str, port: int, database: str, logger: LoggerLike) -> None:
         self._logger = logger
-        self._settings = settings
+        self._user = user
+        self._host = host
+        self._port = port
+        self._database = database
         self._engine = create_async_engine(
-            settings.dsn,
-            echo=settings.should_log_statements,
-            future=True,
+            f"postgresql+asyncpg://{user}:{password}@{host}:{port}/{database}", echo=False, future=True
         )
         self._async_session = async_sessionmaker(self._engine, class_=AsyncSession, expire_on_commit=False)
 
     async def start(self) -> None:
-        self._logger.info("Connecting to postgres on %s:%s...", self._settings.host, self._settings.port)
+        self._logger.info(
+            "Connecting to postgres on %s:%s to database '%s' using user '%s'...",
+            self._host,
+            self._port,
+            self._database,
+            self._user,
+        )
         async with self._engine.connect() as conn:
             await conn.execute(text("SELECT 1"))
 

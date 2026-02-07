@@ -6,24 +6,23 @@ from uuid import uuid4
 
 from aiokafka import AIOKafkaConsumer
 from aiokafka.structs import ConsumerRecord
-from opentelemetry.trace import Tracer
 
 from common.brokers.interface import AbstractConsumerInterceptor
-from common.brokers.kafka.settings import KafkaConsumerSettings
 from common.logs import LoggerLike
 
 
 class KafkaConsumer:
-    def __init__(self, settings: KafkaConsumerSettings, logger: LoggerLike, tracer: Tracer) -> None:
-        self._settings = settings
+    def __init__(self, topic: str, address: str, client_prefix: str, group_id: str, logger: LoggerLike) -> None:
         self._logger = logger
-        self._tracer = tracer
-        self._client_id = f"{settings.client_prefix}-{uuid4().hex[:6]}"
+        self._client_id = f"{client_prefix}-{uuid4().hex[:6]}"
+        self._topic = topic
+        self._address = address
+        self._group_id = group_id
         self._consumer = AIOKafkaConsumer(
-            settings.topic,
+            topic,
             client_id=self._client_id,
-            group_id=settings.group,
-            bootstrap_servers=settings.address,
+            group_id=self._group_id,
+            bootstrap_servers=address,
             value_deserializer=lambda value: json.loads(value.decode("utf-8")),
         )
         self._processor: asyncio.Task | None = None
@@ -40,8 +39,8 @@ class KafkaConsumer:
         self._logger.info(
             "Starting the kafka consumer '%s' on server '%s' with topic '%s'...",
             self._client_id,
-            self._settings.address,
-            self._settings.topic,
+            self._address,
+            self._topic,
         )
         await self._consumer.start()
         self._processor = asyncio.create_task(self._process_messages())

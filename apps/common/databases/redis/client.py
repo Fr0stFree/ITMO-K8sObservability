@@ -2,18 +2,19 @@ from contextlib import suppress
 
 from redis.asyncio import Redis
 
-from common.databases.redis.settings import RedisClientSettings
 from common.logs import LoggerLike
 
 
 class RedisClient:
-    def __init__(self, settings: RedisClientSettings, logger: LoggerLike) -> None:
-        self._settings = settings
+    def __init__(self, host: str, port: int, database: int, password: str, logger: LoggerLike) -> None:
+        self._host = host
+        self._port = port
+        self._db = database
         self._logger = logger
-        self._client = Redis.from_url(settings.dsn, db=settings.db, decode_responses=True)
+        self._client = Redis.from_url(f"redis://:{password}@{host}:{port}/{database}", decode_responses=True)
 
     async def start(self) -> None:
-        self._logger.info("Connecting to redis at %s:%s...", self._settings.host, self._settings.port)
+        self._logger.info("Connecting to redis at %s:%s to database '%s'...", self._host, self._port, self._db)
         await self._client.ping()
 
     async def stop(self) -> None:
