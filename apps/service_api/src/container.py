@@ -55,6 +55,12 @@ class Container(containers.DeclarativeContainer):
         "Latency of HTTP requests in seconds",
         ["method", "endpoint"],
     )
+    rpc_request_counter = providers.Singleton(
+        Counter,
+        "service_api_grpc_requests_total",
+        "Total number of gRPC requests",
+        ["method"],
+    )
     rpc_request_latency = providers.Singleton(
         Histogram,
         "service_api_grpc_request_latency_seconds",

@@ -45,9 +45,7 @@ python -m grpc_tools.protoc \
 
 echo "[grpc] Updating imports in generated gRPC files..."
 for file in "${OUT_DIR}"/*_pb2_grpc.py; do
-  sed -i '' \
-    -e 's/^import \(.*_pb2\) as/from protocol import \1 as/' \
-    "${file}"
+  sed -i -e 's/^import \(.*_pb2\) as/from protocol import \1 as/' "${file}"
 done
 
 echo "[grpc] Generation completed successfully."

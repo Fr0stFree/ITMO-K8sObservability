@@ -1,8 +1,8 @@
 from dependency_injector.wiring import Provide, inject
+from google.protobuf.empty_pb2 import Empty
 from grpc import StatusCode
 from grpc.aio import Server, ServicerContext
 from opentelemetry.trace import Span
-from google.protobuf.empty_pb2 import Empty
 
 from common.logs.interface import LoggerLike
 from protocol.analyzer_pb2 import (

@@ -18,10 +18,13 @@ async def main(
     service: IService = Provide[Container.service],
 ) -> None:
     http_server.add_routes(handlers.routes)
-    http_server.add_middleware(middleware.observability)
+    http_server.add_middleware(middleware.tracing)
+    http_server.add_middleware(middleware.logging)
+    http_server.add_middleware(middleware.metrics)
     http_server.add_middleware(middleware.error_handling)
-    crawler_client.add_interceptor(interceptors.ObservabilityClientInterceptor())
-    analyzer_client.add_interceptor(interceptors.ObservabilityClientInterceptor())
+    crawler_client.add_interceptor(interceptors.TracingClientInterceptor())
+    analyzer_client.add_interceptor(interceptors.LoggingClientInterceptor())
+    analyzer_client.add_interceptor(interceptors.MetricsClientInterceptor())
 
     await service.run()
 

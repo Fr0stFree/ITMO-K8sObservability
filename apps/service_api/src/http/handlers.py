@@ -4,8 +4,6 @@ from json import JSONDecodeError
 from aiohttp.web import Request, Response, RouteTableDef, json_response
 from dependency_injector.wiring import Provide, inject
 from google.protobuf.json_format import MessageToDict
-from grpc import StatusCode
-from grpc.aio import AioRpcError
 from opentelemetry.trace import Span
 
 from common.grpc.client import GRPCClient
@@ -108,7 +106,7 @@ async def delete_target(
     rpc_request = GetTargetDetailsRequest(id=target_id)
     async with analyzer as client:
         rpc_response = await client.GetTargetDetails(rpc_request)
-    
+
     target = rpc_response.target
 
     rpc_request = RemoveTargetRequest(target_url=target.url)

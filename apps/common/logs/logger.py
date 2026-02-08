@@ -31,6 +31,7 @@ def new_logger(
     console_handler.addFilter(otel_filter)
     logger.addHandler(console_handler)
 
+    # Rotating file handler for structured logs
     file_handler = logging.handlers.RotatingFileHandler(
         filename=file_path,
         maxBytes=file_max_bytes,

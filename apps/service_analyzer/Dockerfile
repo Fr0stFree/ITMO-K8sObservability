@@ -1,13 +1,21 @@
 FROM python:3.12-slim
 
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/app
+
 WORKDIR /app
 
-COPY requirements.txt .
+COPY ./service_analyzer/requirements.txt ./service_analyzer/requirements.txt
+RUN pip install --no-cache-dir -r ./service_analyzer/requirements.txt
 
-RUN pip install --no-cache-dir -r requirements.txt
+COPY ./common/ ./common
+COPY ./service_analyzer ./service_analyzer
+COPY ./proto ./proto
+COPY ./build_protobufs.sh .
 
-COPY src/ .
+RUN chmod +x build_protobufs.sh && ./build_protobufs.sh
 
 EXPOSE 8000
 
-CMD ["gunicorn", "-k", "uvicorn.workers.UvicornWorker", "main:app", "--bind", "0.0.0.0:8000"]
+CMD ["python", "-m", "service_analyzer.src.main"]
