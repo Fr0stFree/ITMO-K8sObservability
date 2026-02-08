@@ -16,11 +16,9 @@ class TraceExporterSettings(BaseModel):
 
 
 class LoggingSettings(BaseModel):
-    format: str = Field("%(asctime)s - %(name)s - %(levelname)s - %(message)s", alias="FORMAT")
+    is_export_enabled: bool = Field(False, alias="IS_EXPORT_ENABLED")
+    exporting_endpoint: str | None = Field(None, alias="EXPORTING_ENDPOINT")
     level: int = Field(logging.INFO, alias="LEVEL")
-    file_path: str = Field(..., alias="FILE_PATH")
-    file_max_bytes: int = Field(10 * 1024 * 1024, alias="FILE_MAX_BYTES")
-    file_backup_count: int = Field(2, alias="FILE_BACKUP_COUNT")
 
 
 class HTTPServerSettings(BaseModel):

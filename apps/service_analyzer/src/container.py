@@ -6,7 +6,7 @@ from common.brokers.kafka import KafkaConsumer
 from common.databases.postgres import PostgresClient
 from common.grpc import GRPCServer
 from common.http import HTTPServer
-from common.logs import new_logger
+from common.logs import LoggerHandle
 from common.metrics import MetricsServer
 from common.service import BaseService
 from common.tracing import TraceExporter
@@ -18,15 +18,14 @@ class Container(containers.DeclarativeContainer):
     settings = providers.Configuration(pydantic_settings=[AnalyzerServiceSettings()])
 
     # observability
-    logger = providers.Singleton(
-        new_logger,
+    logger_handle = providers.Singleton(
+        LoggerHandle,
         name=settings.service_name,
-        format=settings.logging.format,
-        file_path=settings.logging.file_path,
+        is_export_enabled=settings.logging.is_export_enabled,
+        exporting_endpoint=settings.logging.exporting_endpoint,
         level=settings.logging.level,
-        file_max_bytes=settings.logging.file_max_bytes,
-        file_backup_count=settings.logging.file_backup_count,
     )
+    logger = logger_handle.provided.logger
     metrics_server = providers.Singleton(
         MetricsServer,
         port=settings.metrics_server.port,
@@ -36,7 +35,6 @@ class Container(containers.DeclarativeContainer):
         TraceExporter,
         name=settings.service_name,
         endpoint=settings.trace_exporter.otlp_endpoint,
-        protocol=settings.trace_exporter.protocol,
         is_enabled=settings.trace_exporter.enabled,
         logger=logger,
     )
@@ -86,6 +84,7 @@ class Container(containers.DeclarativeContainer):
     service = providers.Singleton(
         BaseService,
         components=providers.List(
+            logger_handle,
             http_server,
             metrics_server,
             trace_exporter,

@@ -12,36 +12,71 @@ from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler
 from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
 from opentelemetry.sdk.resources import Resource
 
+from common.logs.interface import LoggerLike
 
-# TODO: implement lifecycle
-def new_logger(
-    name: str,
-    exporter_endpoint: str = "http://localhost:4317", # TODO: make it configurable
-    level: int = logging.INFO,
-) -> logging.Logger:
 
-    logger = logging.getLogger(name)
-    logger.setLevel(level)
-    logger.handlers.clear()
+class LoggerHandle:
+    def __init__(
+        self,
+        name: str,
+        is_export_enabled: bool,
+        exporting_endpoint: str | None = None,
+        level: int = logging.INFO,
+    ) -> None:
+        self._name = name
+        self._level = level
+        self._is_export_enabled = is_export_enabled
+        self._exporting_endpoint = exporting_endpoint
 
-    console_formatter = ConsoleFormatter()
-    otel_filter = OpenTelemetryLogFilter()
+        self._logger = logging.getLogger(name)
+        self._logger.setLevel(level)
+        self._logger.handlers.clear()
 
-    # Console handler for human-readable logs
-    console_handler = logging.StreamHandler()
-    console_handler.setLevel(level)
-    console_handler.setFormatter(console_formatter)
-    console_handler.addFilter(otel_filter)
-    logger.addHandler(console_handler)
+        self.__setup_console_handler()
+        self.__setup_export_handler()
+        self._logger.propagate = False
 
-    # OTLP handler for structured logs
-    logger_provider = LoggerProvider(resource=Resource.create({"service.name": name}))
-    set_logger_provider(logger_provider)
-    exporter = OTLPLogExporter(insecure=True, endpoint=exporter_endpoint)
-    logger_provider.add_log_record_processor(BatchLogRecordProcessor(exporter))
-    handler = LoggingHandler(level=logging.NOTSET, logger_provider=logger_provider)
-    logger.addHandler(handler)
+    def __setup_console_handler(self) -> None:
+        console_formatter = ConsoleFormatter()
+        otel_filter = OpenTelemetryLogFilter()
+        console_handler = logging.StreamHandler()
+        console_handler.setLevel(self._level)
+        console_handler.setFormatter(console_formatter)
+        console_handler.addFilter(otel_filter)
+        self._logger.addHandler(console_handler)
 
-    logger.propagate = False
+    def __setup_export_handler(self) -> None:
+        if not self._is_export_enabled:
+            return
+        if not self._exporting_endpoint:
+            raise ValueError("Exporting endpoint must be provided when export is enabled")
 
-    return logger
+        self._provider = LoggerProvider(resource=Resource.create({"service.name": self._name}))
+
+        set_logger_provider(self._provider)
+        self._exporter = OTLPLogExporter(insecure=True, endpoint=self._exporting_endpoint)
+        self._provider.add_log_record_processor(BatchLogRecordProcessor(self._exporter))
+        handler = LoggingHandler(level=logging.NOTSET, logger_provider=self._provider)
+        self._logger.addHandler(handler)
+
+    async def start(self) -> None:
+        self._logger.info(
+            "Logging is enabled. Exporting is %s",
+            f"enabled to {self._exporting_endpoint}" if self._is_export_enabled else "disabled",
+        )
+
+    async def stop(self) -> None:
+        self._logger.info("Stopping logger...")
+        if hasattr(self, "_exporter"):
+            self._exporter.shutdown()
+
+        for handler in self._logger.handlers:
+            handler.close()
+            self._logger.removeHandler(handler)
+        
+    async def is_healthy(self) -> bool:
+        return True
+
+    @property
+    def logger(self) -> LoggerLike:
+        return self._logger

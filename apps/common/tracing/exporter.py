@@ -7,10 +7,9 @@ from common.logs import LoggerLike
 
 
 class TraceExporter:
-    def __init__(self, name: str, endpoint: str, protocol: str, is_enabled: bool, logger: LoggerLike) -> None:
+    def __init__(self, name: str, endpoint: str, is_enabled: bool, logger: LoggerLike) -> None:
         self._name = name
         self._endpoint = endpoint
-        self._protocol = protocol
         self._is_enabled = is_enabled
         self._logger = logger
 
@@ -22,16 +21,12 @@ class TraceExporter:
             self._logger.info("Tracing is disabled")
             return
 
-        self._logger.info(
-            "Starting to export traces to '%s' utilizing '%s'",
-            self._endpoint,
-            self._protocol,
-        )
         resource = Resource.create({"service.name": self._name})
         self._exporter = OTLPSpanExporter(endpoint=self._endpoint, insecure=True)
         self._provider = TracerProvider(resource=resource)
         self._provider.add_span_processor(BatchSpanProcessor(self._exporter))
         trace.set_tracer_provider(self._provider)
+        self._logger.info("Tracing exporter is enabled to '%s'", self._endpoint)
 
     async def stop(self) -> None:
         self._logger.info("Stopping trace exporter...")
