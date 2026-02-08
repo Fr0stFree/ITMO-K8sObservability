@@ -1,0 +1,15 @@
+auth:
+  username: postgres
+  password: postgres
+  database: pulse-hub
+
+primary:
+  persistence:
+    enabled: true
+    size: 10Gi
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+

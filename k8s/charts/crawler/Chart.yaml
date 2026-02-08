@@ -1,0 +1,7 @@
+---
+apiVersion: v2
+type: application
+name: crawler-service
+description: A Helm chart for Kubernetes to deploy the Crawler service.
+version: 0.1.0
+appVersion: "latest"

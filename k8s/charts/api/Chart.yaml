@@ -1,0 +1,7 @@
+---
+apiVersion: v2
+type: application
+name: api-service
+description: A Helm chart for Kubernetes to deploy the API service.
+version: 0.1.0
+appVersion: "latest"
