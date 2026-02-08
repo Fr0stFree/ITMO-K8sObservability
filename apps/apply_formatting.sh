@@ -2,13 +2,13 @@
 
 set -euo pipefail
 
-echo "Running ruff (fix)..."
+echo "[formatting] Running ruff (fix)..."
 ruff check . --fix
 
-echo "Running isort..."
+echo "[formatting] Running isort..."
 isort .
 
-echo "Running black..."
+echo "[formatting] Running black..."
 black .
 
-echo "Formatting completed successfully."
+echo "[formatting] Formatting completed successfully."

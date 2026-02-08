@@ -1,26 +1,29 @@
 import logging
-import logging.handlers
-from pathlib import Path
-
-from pythonjsonlogger.json import JsonFormatter
 
 from common.logs.filters import OpenTelemetryLogFilter
 from common.logs.formatters import ConsoleFormatter
+import logging
+
+from opentelemetry._logs import set_logger_provider
+from opentelemetry.exporter.otlp.proto.grpc._log_exporter import (
+    OTLPLogExporter,
+)
+from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler
+from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
+from opentelemetry.sdk.resources import Resource
 
 
+# TODO: implement lifecycle
 def new_logger(
     name: str,
-    format: str,
-    file_path: Path,
+    exporter_endpoint: str = "http://localhost:4317", # TODO: make it configurable
     level: int = logging.INFO,
-    file_max_bytes: int = 10 * 1024 * 1024,
-    file_backup_count: int = 2,
 ) -> logging.Logger:
+
     logger = logging.getLogger(name)
     logger.setLevel(level)
     logger.handlers.clear()
 
-    json_formatter = JsonFormatter(format)
     console_formatter = ConsoleFormatter()
     otel_filter = OpenTelemetryLogFilter()
 
@@ -31,17 +34,13 @@ def new_logger(
     console_handler.addFilter(otel_filter)
     logger.addHandler(console_handler)
 
-    # Rotating file handler for structured logs
-    file_handler = logging.handlers.RotatingFileHandler(
-        filename=file_path,
-        maxBytes=file_max_bytes,
-        backupCount=file_backup_count,
-        encoding="utf-8",
-    )
-    file_handler.setLevel(level)
-    file_handler.setFormatter(json_formatter)
-    file_handler.addFilter(otel_filter)
-    logger.addHandler(file_handler)
+    # OTLP handler for structured logs
+    logger_provider = LoggerProvider(resource=Resource.create({"service.name": name}))
+    set_logger_provider(logger_provider)
+    exporter = OTLPLogExporter(insecure=True, endpoint=exporter_endpoint)
+    logger_provider.add_log_record_processor(BatchLogRecordProcessor(exporter))
+    handler = LoggingHandler(level=logging.NOTSET, logger_provider=logger_provider)
+    logger.addHandler(handler)
 
     logger.propagate = False
 

@@ -1,7 +1,8 @@
 from opentelemetry import trace
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
-
+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from common.logs import LoggerLike
 
 
@@ -14,7 +15,7 @@ class TraceExporter:
         self._logger = logger
 
         self._provider: TracerProvider
-        # self._exporter: OTLPSpanExporter
+        self._exporter: OTLPSpanExporter
 
     async def start(self) -> None:
         if not self._is_enabled:
@@ -27,18 +28,15 @@ class TraceExporter:
             self._protocol,
         )
         resource = Resource.create({"service.name": self._name})
-        # self._exporter = OTLPSpanExporter(endpoint=self._endpoint, insecure=True)
-        # self._exporter = ConsoleSpanExporter()
-
+        self._exporter = OTLPSpanExporter(endpoint=self._endpoint, insecure=True)
         self._provider = TracerProvider(resource=resource)
-
-        # self._provider.add_span_processor(BatchSpanProcessor(self._exporter))
-        # self._provider.add_span_processor(SimpleSpanProcessor(ConsoleSpanExporter()))
+        self._provider.add_span_processor(BatchSpanProcessor(self._exporter))
         trace.set_tracer_provider(self._provider)
 
     async def stop(self) -> None:
         self._logger.info("Stopping trace exporter...")
         self._provider.shutdown()
+        self._exporter.shutdown()
 
     async def is_healthy(self) -> bool:
         if not self._is_enabled:

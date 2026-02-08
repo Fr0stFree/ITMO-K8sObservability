@@ -13,13 +13,13 @@ fi
 
 SERVICE_NAME="$1"
 case "${SERVICE_NAME}" in
-  api)
+  api-service)
     SERVICE_DIR="${APP_ROOT}/service_api"
     ;;
-  crawler)
+  crawler-service)
     SERVICE_DIR="${APP_ROOT}/service_crawler"
     ;;
-  analyzer)
+  analyzer-service)
     SERVICE_DIR="${APP_ROOT}/service_analyzer"
     ;;
   *)
