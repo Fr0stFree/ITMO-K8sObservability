@@ -1,5 +1,6 @@
 from dependency_injector import containers, providers
 from opentelemetry import trace
+from prometheus_client import Histogram
 
 from common.brokers.kafka import KafkaConsumer
 from common.databases.postgres import PostgresClient
@@ -41,6 +42,14 @@ class Container(containers.DeclarativeContainer):
     )
     tracer = providers.Singleton(trace.get_tracer, settings.service_name)
     current_span = providers.Factory(trace.get_current_span)
+
+    # metrics
+    rpc_request_latency = providers.Singleton(
+        Histogram,
+        "service_crawler_grpc_request_latency_seconds",
+        "Latency of gRPC requests in seconds",
+        ["method"],
+    )
 
     # components
     http_server = providers.Singleton(

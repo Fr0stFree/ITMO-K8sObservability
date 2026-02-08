@@ -40,6 +40,9 @@ class CrawlingPipeline:
                     self._queue.task_done()
 
     def register_urls(self, urls: Iterable[str]) -> None:
+        if not self._workers:
+            return
+
         batches = {worker: [] for worker in self._workers}
         for url in urls:
             worker_index = int(md5(url.encode(), usedforsecurity=False).hexdigest(), 16) % len(self._workers)
@@ -49,6 +52,9 @@ class CrawlingPipeline:
             worker.add_urls(batch)
 
     def unregister_urls(self, urls: Iterable[str]) -> None:
+        if not self._workers:
+            return
+
         for worker in self._workers:
             worker.remove_urls(urls)
 

@@ -10,6 +10,7 @@ from common.service import IService
 from service_analyzer.src.consumer.handlers import on_new_message
 from service_analyzer.src.consumer.interceptors import ObservabilityConsumerInterceptor
 from service_analyzer.src.container import Container
+from service_analyzer.src.grpc.interceptors import ObservabilityServerInterceptor
 from service_analyzer.src.http import handlers
 
 
@@ -25,6 +26,7 @@ async def main(
     consumer.add_interceptor(ObservabilityConsumerInterceptor())
     consumer.set_message_handler(on_new_message)
     grpc_server.setup_servicer(rpc_servicer)
+    grpc_server.add_interceptor(ObservabilityServerInterceptor())
     await service.run()
 
 

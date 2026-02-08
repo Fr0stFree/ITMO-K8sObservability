@@ -48,7 +48,7 @@ class CrawlerServiceSettings(BaseSettings):
     service_name: str = Field("crawler-service", alias="SERVICE_NAME")
     concurrent_workers: int = Field(
         default=1,
-        ge=1,
+        ge=0,
         le=100,
         alias="CRAWLER_CONCURRENT_WORKERS",
     )

@@ -10,7 +10,7 @@ from opentelemetry.trace.status import StatusCode
 from prometheus_client import Histogram
 
 from common.logs.interface import LoggerLike
-from service_crawler.src.container import Container
+from service_analyzer.src.container import Container
 
 
 class ObservabilityServerInterceptor(ServerInterceptor):

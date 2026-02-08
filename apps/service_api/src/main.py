@@ -14,12 +14,14 @@ from service_api.src.http import handlers, middleware
 async def main(
     http_server: IHTTPServer = Provide[Container.http_server],
     crawler_client: IGRPCClient = Provide[Container.crawler_client],
+    analyzer_client: IGRPCClient = Provide[Container.analyzer_client],
     service: IService = Provide[Container.service],
 ) -> None:
     http_server.add_routes(handlers.routes)
     http_server.add_middleware(middleware.observability)
     http_server.add_middleware(middleware.error_handling)
     crawler_client.add_interceptor(interceptors.ObservabilityClientInterceptor())
+    analyzer_client.add_interceptor(interceptors.ObservabilityClientInterceptor())
 
     await service.run()
 
