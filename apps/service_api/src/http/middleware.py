@@ -38,12 +38,7 @@ async def error_handling(
                     {"error": "Upstream service is unavailable"},
                     status=HTTPStatus.SERVICE_UNAVAILABLE,
                 )
-            case _:
-                return web.json_response(
-                    data={"error": "Internal server error"},
-                    status=HTTPStatus.INTERNAL_SERVER_ERROR,
-                )
-
+        raise error
 
 @web.middleware
 @inject

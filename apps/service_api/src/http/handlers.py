@@ -66,14 +66,7 @@ async def get_target(
 
     rpc_request = GetTargetDetailsRequest(id=target_id)
     async with analyzer as client:
-        try:
-            rpc_response = await client.GetTargetDetails(rpc_request)
-        except AioRpcError as error:
-            match error.code():
-                case StatusCode.NOT_FOUND:
-                    return json_response({"error": "target not found"}, status=HTTPStatus.NOT_FOUND)
-                case _:
-                    raise error
+        rpc_response = await client.GetTargetDetails(rpc_request)
 
     response_body = MessageToDict(rpc_response, preserving_proto_field_name=True)
     return json_response(response_body, status=HTTPStatus.OK)
@@ -112,12 +105,18 @@ async def delete_target(
     if not target_id:
         return json_response({"error": "missing url id in path"}, status=HTTPStatus.BAD_REQUEST)
 
-    crawler_request = RemoveTargetRequest(target_url=target_id)
-    async with crawler as client:
-        await client.RemoveTarget(crawler_request)
-
-    analyzer_request = DeleteTargetRequest(id=target_id)
+    rpc_request = GetTargetDetailsRequest(id=target_id)
     async with analyzer as client:
-        await client.DeleteTarget(analyzer_request)
+        rpc_response = await client.GetTargetDetails(rpc_request)
+    
+    target = rpc_response.target
+
+    rpc_request = RemoveTargetRequest(target_url=target.url)
+    async with crawler as client:
+        await client.RemoveTarget(rpc_request)
+
+    rpc_request = DeleteTargetRequest(id=target.id)
+    async with analyzer as client:
+        await client.DeleteTarget(rpc_request)
 
     return Response(status=HTTPStatus.NO_CONTENT)

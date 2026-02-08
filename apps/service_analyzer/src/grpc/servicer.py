@@ -2,6 +2,7 @@ from dependency_injector.wiring import Provide, inject
 from grpc import StatusCode
 from grpc.aio import Server, ServicerContext
 from opentelemetry.trace import Span
+from google.protobuf.empty_pb2 import Empty
 
 from common.logs.interface import LoggerLike
 from protocol.analyzer_pb2 import (
@@ -58,6 +59,7 @@ class RPCServicer(AnalyzerServiceServicer):
         logger.info("Deleting target '%s'...", request.id)
         await repo.delete_target(request.id)
         span.set_attribute("target.id", request.id)
+        return Empty()
 
     def add_to_server(self, server: Server) -> None:
         return add_AnalyzerServiceServicer_to_server(self, server)

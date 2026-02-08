@@ -4,7 +4,7 @@ from contextlib import suppress
 import datetime as dt
 from http import HTTPMethod
 
-from aiohttp import ClientSession, ClientTimeout
+from aiohttp import ClientSession, ClientTimeout, TCPConnector
 from dependency_injector.wiring import Provide, inject
 from opentelemetry.propagate import inject as inject_context
 from opentelemetry.trace import Tracer
@@ -14,6 +14,7 @@ from prometheus_client import Counter
 
 from common.logs import LoggerLike
 from service_crawler.src.container import Container
+from service_crawler.src.crawling.const import REQUEST_HEADERS
 from service_crawler.src.crawling.models import CrawledURL, ResourceStatus
 
 
@@ -29,9 +30,12 @@ class Worker:
         self._queue = queue
         self._urls_to_crawl = []
         self._unique_urls = set()
-        self._session = ClientSession()  # TODO: upgrade
+        self._session = ClientSession(
+            timeout=ClientTimeout(total=timeout.total_seconds()),
+            headers=REQUEST_HEADERS,
+            connector=TCPConnector(verify_ssl=False),
+        )
         self._task: asyncio.Task | None = None
-        self._timeout = ClientTimeout(total=timeout.total_seconds())
         self._current_index = 0
         self._worker_number = worker_number
 
@@ -90,7 +94,6 @@ class Worker:
                 "http.crawl",
                 attributes={"http.url": url, "http.method": HTTPMethod.GET, "worker": self._worker_number},
             ):
-                logger.info("Checking URL '%s'...", url, extra={"url": url, "worker": self._worker_number})
                 url = await self._crawl(url)
                 counter.labels(status=url.status).inc()
                 meta = {}
@@ -105,8 +108,9 @@ class Worker:
         logger: LoggerLike = Provide[Container.logger],
         span: Span = Provide[Container.current_span],
     ) -> CrawledURL:
+        logger.info("Checking URL '%s'...", url, extra={"url": url, "worker": self._worker_number})
         try:
-            async with self._session.get(url, timeout=self._timeout) as response:
+            async with self._session.get(url) as response:
                 span.set_attribute("http.status_code", response.status)
                 result = CrawledURL(
                     url=url,
@@ -114,8 +118,19 @@ class Worker:
                     updated_at=dt.datetime.now(tz=dt.UTC).isoformat(),
                 )
                 span.set_status(StatusCode.OK)
+                logger.info(
+                    "Crawled URL '%s' with status %d",
+                    url,
+                    response.status,
+                    extra={"url": url, "worker": self._worker_number},
+                )
         except Exception as error:
-            logger.error("Error while crawling URL '%s': %s", url, error)
+            logger.error(
+                "Error while checking URL '%s': %s",
+                url,
+                error,
+                extra={"url": url, "worker": self._worker_number},
+            )
             result = CrawledURL(
                 url=url,
                 status=ResourceStatus.UNKNOWN,

@@ -30,7 +30,7 @@ class GRPCServer:
         self._logger.info("Starting the grpc server on port %d...", self._port)
         self._server = server(ThreadPoolExecutor(max_workers=self._worker_amount), interceptors=self._interceptors)
         self._servicer.add_to_server(self._server)
-        self._server.add_insecure_port(f"[::]:{self._port}")
+        self._server.add_insecure_port(f"0.0.0.0:{self._port}")
         await self._server.start()
 
     async def stop(self) -> None:
