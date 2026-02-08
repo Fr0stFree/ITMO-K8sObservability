@@ -2,13 +2,14 @@ from http import HTTPStatus
 
 from aiohttp import web
 from aiohttp.typedefs import Handler as IHttpHandler
+from attr import attributes
 from dependency_injector.wiring import Provide, inject
 from grpc import StatusCode
 from grpc.aio import AioRpcError
 from opentelemetry.trace import Tracer
 from opentelemetry.trace.status import StatusCode as TraceStatusCode
 from prometheus_client import Counter, Histogram
-
+from opentelemetry.metrics import Counter as OTelCounter
 from common.logs.interface import LoggerLike
 from service_api.src.container import Container
 
@@ -86,20 +87,22 @@ async def metrics(
     handler: IHttpHandler,
     request_counter: Counter = Provide[Container.requests_counter],
     request_latency: Histogram = Provide[Container.request_latency],
+    requests_counter_otel: OTelCounter = Provide[Container.requests_counter_otel],
 ) -> web.StreamResponse:
     canonical_path = _retrieve_canonical_path(request)
+    attributes = {"method": request.method, "endpoint": canonical_path}
     with request_latency.labels(method=request.method, endpoint=canonical_path).time():
         try:
             response = await handler(request)
         except Exception as error:
-            request_counter.labels(
-                method=request.method,
-                endpoint=canonical_path,
-                http_status=HTTPStatus.INTERNAL_SERVER_ERROR,
-            ).inc()
+            attributes["http_status"] = str(HTTPStatus.INTERNAL_SERVER_ERROR)
+            request_counter.labels(**attributes).inc()
+            requests_counter_otel.add(1, attributes)
             raise error
 
-        request_counter.labels(method=request.method, endpoint=canonical_path, http_status=response.status).inc()
+        attributes["http_status"] = str(response.status)
+        requests_counter_otel.add(1, attributes)
+        request_counter.labels(**attributes).inc()
         return response
 
 

@@ -20,3 +20,8 @@ scrape_configs:
     static_configs:
       - targets:
           - "host.docker.internal:9002"
+
+  - job_name: "otel-collector"
+    scrape_interval: 5s
+    static_configs:
+      - targets: ["otel-collector:8889"]

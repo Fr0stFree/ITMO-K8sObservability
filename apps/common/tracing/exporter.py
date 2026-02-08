@@ -25,8 +25,8 @@ class TraceExporter:
         self._exporter = OTLPSpanExporter(endpoint=self._endpoint, insecure=True)
         self._provider = TracerProvider(resource=resource)
         self._provider.add_span_processor(BatchSpanProcessor(self._exporter))
-        trace.set_tracer_provider(self._provider)
         self._logger.info("Tracing exporter is enabled to '%s'", self._endpoint)
+        trace.set_tracer_provider(self._provider)
 
     async def stop(self) -> None:
         self._logger.info("Stopping trace exporter...")
