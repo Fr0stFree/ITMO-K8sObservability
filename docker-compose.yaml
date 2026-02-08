@@ -9,8 +9,8 @@ services:
       - ./configs/otel-collector/config.yaml:/etc/otel-collector.yaml
     command: ["--config=/etc/otel-collector.yaml"]
     ports:
-      - "4317:4317" # OTLP gRPC
-      - "55681:55681" # OTLP HTTP
+      - "4317:4317"
+      - "55681:55681"
 
   prometheus:
     image: prom/prometheus:v2.51.2
@@ -30,16 +30,6 @@ services:
     volumes:
       - ./configs/loki/config.yaml:/etc/loki/loki.yaml
       - loki-data:/loki
-
-  promtail:
-    image: grafana/promtail:2.9.6
-    container_name: promtail
-    volumes:
-      - ./configs/promtail/config.yaml:/etc/promtail/promtail.yaml
-      - ./logs:/var/log/app:ro
-    command: -config.file=/etc/promtail/promtail.yaml
-    depends_on:
-      - loki
 
   jaeger:
     image: jaegertracing/all-in-one:1.54

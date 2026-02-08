@@ -7,6 +7,4 @@ Includes IaC, demo app, dashboards, load testing, performance benchmarks, TCO an
 ### TODO:
 
 #### Services
-- [ ] Починить обертку трассировщика вокруг grpc-интерсепторов
-- [ ] Добавить обертку трассировщика вокруг kafka-consumer
-- [ ] Добавить больше публикуемых метрик в сервисы
+- [ ] Починить логгирование
