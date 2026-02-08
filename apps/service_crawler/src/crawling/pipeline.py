@@ -66,8 +66,6 @@ class CrawlingPipeline:
     ) -> None:
         targets = await repo.get_targets()
         logger.info("Starting crawling pipeline with %d targets...", len(targets))
-        if not targets:
-            raise RuntimeError("No URLs to crawl found")
 
         self.register_urls(targets)
 
