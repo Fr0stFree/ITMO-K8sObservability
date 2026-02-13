@@ -10,7 +10,6 @@ from opentelemetry.propagate import inject as inject_context
 from opentelemetry.trace import Tracer
 from opentelemetry.trace.span import Span
 from opentelemetry.trace.status import StatusCode
-from prometheus_client import Counter
 
 from common.logs import LoggerLike
 from service_crawler.src.container import Container
@@ -79,7 +78,6 @@ class Worker:
     async def _run(
         self,
         tracer: Tracer = Provide[Container.tracer],
-        counter: Counter = Provide[Container.crawled_urls_counter],
         logger: LoggerLike = Provide[Container.logger],
     ) -> None:
         while True:
@@ -95,7 +93,6 @@ class Worker:
                 attributes={"http.url": url, "http.method": HTTPMethod.GET, "worker": self._worker_number},
             ):
                 url = await self._crawl(url)
-                counter.labels(status=url.status).inc()
                 meta = {}
                 inject_context(meta)
                 await self._queue.put((url, meta))

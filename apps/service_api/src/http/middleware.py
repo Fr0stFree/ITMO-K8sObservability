@@ -1,15 +1,15 @@
 from http import HTTPStatus
+import time
 
 from aiohttp import web
 from aiohttp.typedefs import Handler as IHttpHandler
-from attr import attributes
 from dependency_injector.wiring import Provide, inject
 from grpc import StatusCode
 from grpc.aio import AioRpcError
+from opentelemetry.metrics import Counter, Histogram
 from opentelemetry.trace import Tracer
 from opentelemetry.trace.status import StatusCode as TraceStatusCode
-from prometheus_client import Counter, Histogram
-from opentelemetry.metrics import Counter as OTelCounter
+
 from common.logs.interface import LoggerLike
 from service_api.src.container import Container
 
@@ -85,25 +85,24 @@ async def logging(
 async def metrics(
     request: web.Request,
     handler: IHttpHandler,
-    request_counter: Counter = Provide[Container.requests_counter],
-    request_latency: Histogram = Provide[Container.request_latency],
-    requests_counter_otel: OTelCounter = Provide[Container.requests_counter_otel],
+    request_counter: Counter = Provide[Container.http_incoming_requests_counter],
+    request_latency: Histogram = Provide[Container.http_incoming_requests_latency],
 ) -> web.StreamResponse:
     canonical_path = _retrieve_canonical_path(request)
     attributes = {"method": request.method, "endpoint": canonical_path}
-    with request_latency.labels(method=request.method, endpoint=canonical_path).time():
-        try:
-            response = await handler(request)
-        except Exception as error:
-            attributes["http_status"] = str(HTTPStatus.INTERNAL_SERVER_ERROR)
-            request_counter.labels(**attributes).inc()
-            requests_counter_otel.add(1, attributes)
-            raise error
-
-        attributes["http_status"] = str(response.status)
-        requests_counter_otel.add(1, attributes)
-        request_counter.labels(**attributes).inc()
+    start = time.monotonic()
+    try:
+        response = await handler(request)
+        attributes["status"] = str(response.status)
+        request_counter.add(1, attributes)
         return response
+    except Exception as error:
+        attributes["status"] = str(HTTPStatus.INTERNAL_SERVER_ERROR)
+        request_counter.add(1, attributes)
+        raise error
+    finally:
+        duration = time.monotonic() - start
+        request_latency.record(duration, attributes)
 
 
 @web.middleware

@@ -1,9 +1,5 @@
 import logging
 
-from common.logs.filters import OpenTelemetryLogFilter
-from common.logs.formatters import ConsoleFormatter
-import logging
-
 from opentelemetry._logs import set_logger_provider
 from opentelemetry.exporter.otlp.proto.grpc._log_exporter import (
     OTLPLogExporter,
@@ -12,6 +8,8 @@ from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler
 from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
 from opentelemetry.sdk.resources import Resource
 
+from common.logs.filters import OpenTelemetryLogFilter
+from common.logs.formatters import ConsoleFormatter
 from common.logs.interface import LoggerLike
 
 
@@ -62,7 +60,7 @@ class LoggerHandle:
     async def start(self) -> None:
         self._logger.info(
             "Logging is enabled. Exporting is %s",
-            f"enabled to {self._exporting_endpoint}" if self._is_export_enabled else "disabled",
+            f"enabled to '{self._exporting_endpoint}'" if self._is_export_enabled else "disabled",
         )
 
     async def stop(self) -> None:
@@ -73,7 +71,7 @@ class LoggerHandle:
         for handler in self._logger.handlers:
             handler.close()
             self._logger.removeHandler(handler)
-        
+
     async def is_healthy(self) -> bool:
         return True
 

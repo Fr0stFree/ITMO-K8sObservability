@@ -5,8 +5,9 @@ from pydantic import BaseModel, ConfigDict, Field
 from pydantic_settings import BaseSettings
 
 
-class MetricsServerSettings(BaseModel):
-    port: int = Field(..., alias="PORT")
+class MetricsExporterSettings(BaseModel):
+    otlp_endpoint: str = Field(..., alias="OTLP_ENDPOINT")
+    enabled: bool = Field(True, alias="IS_ENABLED")
 
 
 class TraceExporterSettings(BaseModel):
@@ -49,7 +50,7 @@ class AnalyzerServiceSettings(BaseSettings):
     health_check_timeout: dt.timedelta = Field(dt.timedelta(seconds=5), alias="HEALTH_CHECK_TIMEOUT")
 
     logging: LoggingSettings
-    metrics_server: MetricsServerSettings
+    metrics_exporter: MetricsExporterSettings
     trace_exporter: TraceExporterSettings
     http_server: HTTPServerSettings
     grpc_server: GRPCServerSettings

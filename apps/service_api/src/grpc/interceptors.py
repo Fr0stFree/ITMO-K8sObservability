@@ -1,12 +1,13 @@
 from collections.abc import Awaitable, Callable
+import time
 from typing import Any
 
 from dependency_injector.wiring import Provide, inject
 from grpc.aio import ClientCallDetails, UnaryUnaryClientInterceptor
 from opentelemetry import propagate
+from opentelemetry.metrics import Counter, Histogram
 from opentelemetry.trace import Tracer
 from opentelemetry.trace.status import StatusCode
-from prometheus_client import Counter, Histogram
 
 from common.logs.interface import LoggerLike
 from service_api.src.container import Container
@@ -49,13 +50,17 @@ class MetricsClientInterceptor(UnaryUnaryClientInterceptor):
         continuation: UnaryUnaryContinuation,
         client_call_details: ClientCallDetails,
         request: Any,
-        latency: Histogram = Provide[Container.rpc_request_latency],
-        counter: Counter = Provide[Container.rpc_request_counter],
+        request_counter: Counter = Provide[Container.grpc_outgoing_requests_counter],
+        request_latency: Histogram = Provide[Container.grpc_outgoing_requests_latency],
     ) -> Any:
-        method = _retrieve_method_name(client_call_details)
-        with latency.labels(method=method).time():
-            counter.labels(method=method).inc()
+        attributes = {"method": _retrieve_method_name(client_call_details)}
+        start = time.monotonic()
+        try:
             return await continuation(client_call_details, request)
+        finally:
+            duration = time.monotonic() - start
+            request_latency.record(duration, attributes)
+            request_counter.add(1, attributes)
 
 
 class TracingClientInterceptor(UnaryUnaryClientInterceptor):

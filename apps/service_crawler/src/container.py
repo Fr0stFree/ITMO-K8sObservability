@@ -1,14 +1,13 @@
 from dependency_injector import containers, providers
 from opentelemetry import trace
-from prometheus_client import Counter, Histogram
 
 from common.brokers.kafka import KafkaProducer
 from common.databases.redis import RedisClient
 from common.grpc import GRPCServer
 from common.http import HTTPServer
 from common.logs import LoggerHandle
-from common.metrics import MetricsServer
-from common.service.service import BaseService
+from common.metrics import MetricsExporter
+from common.service import BaseService
 from common.tracing import TraceExporter
 from service_crawler.src.factories import new_crawling_pipeline, new_repository, new_rpc_servicer
 from service_crawler.src.settings import CrawlerServiceSettings
@@ -26,9 +25,11 @@ class Container(containers.DeclarativeContainer):
         level=settings.logging.level,
     )
     logger = logger_handle.provided.logger
-    metrics_server = providers.Singleton(
-        MetricsServer,
-        port=settings.metrics_server.port,
+    metrics_exporter = providers.Singleton(
+        MetricsExporter,
+        name=settings.service_name,
+        endpoint=settings.metrics_exporter.otlp_endpoint,
+        is_enabled=settings.metrics_exporter.enabled,
         logger=logger,
     )
     trace_exporter = providers.Singleton(
@@ -42,18 +43,19 @@ class Container(containers.DeclarativeContainer):
     current_span = providers.Factory(trace.get_current_span)
 
     # metrics
-    crawled_urls_counter = providers.Singleton(
-        Counter,
-        "crawled_urls_total",
-        "Total number of crawled URLs",
-        ["status"],
+    grpc_incoming_requests_counter = providers.Singleton(
+        metrics_exporter.provided.meter.create_counter.call(),
+        name="service_crawler_incoming_grpc_requests_total",
+        description="Total number of incoming gRPC requests",
+        unit="1",
     )
-    rpc_request_latency = providers.Singleton(
-        Histogram,
-        "service_crawler_grpc_request_latency_seconds",
-        "Latency of gRPC requests in seconds",
-        ["method"],
+    grpc_incoming_requests_latency = providers.Singleton(
+        metrics_exporter.provided.meter.create_histogram.call(),
+        name="service_crawler_incoming_grpc_requests_latency_seconds",
+        description="Latency of incoming gRPC requests in seconds",
+        unit="s",
     )
+    # TODO: producer metrics
 
     # components
     rpc_servicer = providers.Singleton(new_rpc_servicer)
@@ -91,8 +93,8 @@ class Container(containers.DeclarativeContainer):
         components=providers.List(
             logger_handle,
             http_server,
-            metrics_server,
             trace_exporter,
+            metrics_exporter,
             grpc_server,
             db_client,
             broker_producer,

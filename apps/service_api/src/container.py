@@ -1,13 +1,11 @@
 from dependency_injector import containers, providers
 from opentelemetry import trace
-from prometheus_client import Counter, Histogram
-from opentelemetry.metrics import get_meter
+
 from common.grpc import GRPCClient
 from common.http import HTTPServer
 from common.logs import LoggerHandle
-from common.metrics import MetricsServer
-from common.metrics.exporter import MetricsExporter
-from common.service.service import BaseService
+from common.metrics import MetricsExporter
+from common.service import BaseService
 from common.tracing import TraceExporter
 from protocol.analyzer_pb2_grpc import AnalyzerServiceStub
 from protocol.crawler_pb2_grpc import CrawlerServiceStub
@@ -28,15 +26,11 @@ class Container(containers.DeclarativeContainer):
     logger = logger_handle.provided.logger
     tracer = providers.Singleton(trace.get_tracer, settings.service_name)
     current_span = providers.Factory(trace.get_current_span)
-    metrics_server = providers.Singleton(
-        MetricsServer,
-        port=settings.metrics_server.port,
-        logger=logger,
-    )
     metrics_exporter = providers.Singleton(
         MetricsExporter,
         name=settings.service_name,
         endpoint=settings.metrics_exporter.otlp_endpoint,
+        is_enabled=settings.metrics_exporter.enabled,
         logger=logger,
     )
     trace_exporter = providers.Singleton(
@@ -48,35 +42,29 @@ class Container(containers.DeclarativeContainer):
     )
 
     # metrics
-    requests_counter_otel = providers.Singleton(
+    http_incoming_requests_counter = providers.Singleton(
         metrics_exporter.provided.meter.create_counter.call(),
-        name="service_api_http_requests_total",
-        description="Total number of HTTP requests",
+        name="service_api_incoming_http_requests_total",
+        description="Total number of incoming HTTP requests",
         unit="1",
     )
-    requests_counter = providers.Singleton(
-        Counter,
-        "service_api_http_requests_total",
-        "Total number of HTTP requests",
-        ["method", "endpoint", "http_status"],
+    http_incoming_requests_latency = providers.Singleton(
+        metrics_exporter.provided.meter.create_histogram.call(),
+        name="service_api_incoming_http_requests_latency_seconds",
+        description="Latency of incoming HTTP requests in seconds",
+        unit="s",
     )
-    request_latency = providers.Singleton(
-        Histogram,
-        "service_api_http_request_latency_seconds",
-        "Latency of HTTP requests in seconds",
-        ["method", "endpoint"],
+    grpc_outgoing_requests_counter = providers.Singleton(
+        metrics_exporter.provided.meter.create_counter.call(),
+        name="service_api_outgoing_grpc_requests_total",
+        description="Total number of outgoing gRPC requests",
+        unit="1",
     )
-    rpc_request_counter = providers.Singleton(
-        Counter,
-        "service_api_grpc_requests_total",
-        "Total number of gRPC requests",
-        ["method"],
-    )
-    rpc_request_latency = providers.Singleton(
-        Histogram,
-        "service_api_grpc_request_latency_seconds",
-        "Latency of gRPC requests in seconds",
-        ["method"],
+    grpc_outgoing_requests_latency = providers.Singleton(
+        metrics_exporter.provided.meter.create_histogram.call(),
+        name="service_api_outgoing_grpc_requests_latency_seconds",
+        description="Latency of outgoing gRPC requests in seconds",
+        unit="s",
     )
 
     # components
@@ -93,7 +81,6 @@ class Container(containers.DeclarativeContainer):
         components=providers.List(
             logger_handle,
             http_server,
-            metrics_server,
             trace_exporter,
             metrics_exporter,
         ),

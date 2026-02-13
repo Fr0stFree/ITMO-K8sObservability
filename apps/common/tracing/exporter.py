@@ -1,8 +1,9 @@
 from opentelemetry import trace
+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
+
 from common.logs import LoggerLike
 
 
@@ -18,7 +19,7 @@ class TraceExporter:
 
     async def start(self) -> None:
         if not self._is_enabled:
-            self._logger.info("Tracing is disabled")
+            self._logger.info("Trace exporter is disabled")
             return
 
         resource = Resource.create({"service.name": self._name})
