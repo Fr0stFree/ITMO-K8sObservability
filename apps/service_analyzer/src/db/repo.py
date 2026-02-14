@@ -18,8 +18,6 @@ class Repository:
     @inject
     async def stop(self, engine: AsyncEngine = Provide[Container.db_client.provided.engine]) -> None:
         pass
-        # async with engine.begin() as conn:
-        #     await conn.run_sync(Base.metadata.drop_all)
 
     async def is_healthy(self) -> bool:
         return True

@@ -1,3 +1,4 @@
+from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
 
@@ -14,6 +15,7 @@ class PostgresClient:
         self._engine = create_async_engine(
             f"postgresql+asyncpg://{user}:{password}@{host}:{port}/{database}", echo=False, future=True
         )
+        SQLAlchemyInstrumentor().instrument(engine=self._engine.sync_engine)
         self._async_session = async_sessionmaker(self._engine, class_=AsyncSession, expire_on_commit=False)
 
     async def start(self) -> None:

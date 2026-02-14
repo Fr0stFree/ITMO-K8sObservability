@@ -1,5 +1,6 @@
 from contextlib import suppress
 
+from opentelemetry.instrumentation.redis import RedisInstrumentor
 from redis.asyncio import Redis
 
 from common.logs import LoggerLike
@@ -12,6 +13,7 @@ class RedisClient:
         self._db = database
         self._logger = logger
         self._client = Redis.from_url(f"redis://:{password}@{host}:{port}/{database}", decode_responses=True)
+        RedisInstrumentor.instrument_client(client=self._client)
 
     async def start(self) -> None:
         self._logger.info("Connecting to redis at %s:%s to database '%s'...", self._host, self._port, self._db)
