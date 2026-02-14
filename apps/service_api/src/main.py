@@ -22,13 +22,9 @@ async def main(
     http_server.add_middleware(middleware.logging)
     http_server.add_middleware(middleware.metrics)
     http_server.add_middleware(middleware.error_handling)
-    for interceptor in [
-        interceptors.LoggingClientInterceptor(),
-        interceptors.MetricsClientInterceptor(),
-        interceptors.TracingClientInterceptor(),
-    ]:
-        crawler_client.add_interceptor(interceptor)
-        analyzer_client.add_interceptor(interceptor)
+    interceptor = interceptors.ObservabilityClientInterceptor()
+    crawler_client.add_interceptor(interceptor)
+    analyzer_client.add_interceptor(interceptor)
 
     await service.run()
 
