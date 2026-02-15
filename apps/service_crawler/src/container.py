@@ -1,3 +1,4 @@
+from bubus import EventBus
 from dependency_injector import containers, providers
 from opentelemetry import trace
 
@@ -9,7 +10,7 @@ from common.logs import LoggerHandle
 from common.metrics import MetricsExporter
 from common.service import BaseService
 from common.tracing import TraceExporter
-from service_crawler.src.factories import new_crawling_pipeline, new_repository, new_rpc_servicer
+from service_crawler.src.factories import new_repository, new_rpc_servicer, new_worker_manager
 from service_crawler.src.settings import CrawlerServiceSettings
 
 
@@ -85,7 +86,7 @@ class Container(containers.DeclarativeContainer):
         database=settings.redis.database,
         logger=logger,
     )
-    crawling_pipeline = providers.Singleton(new_crawling_pipeline, concurrent_workers=settings.concurrent_workers)
+    worker_manager = providers.Singleton(new_worker_manager, concurrent_workers=settings.concurrent_workers)
     repository = providers.Singleton(new_repository)
 
     service = providers.Singleton(
@@ -98,10 +99,11 @@ class Container(containers.DeclarativeContainer):
             grpc_server,
             db_client,
             broker_producer,
-            crawling_pipeline,
+            worker_manager,
             repository,
         ),
         name=settings.service_name,
         health_check_timeout=settings.health_check_timeout,
         logger=logger,
     )
+    event_bus = providers.Singleton(EventBus)

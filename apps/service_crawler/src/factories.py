@@ -1,18 +1,16 @@
-import asyncio
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from service_analyzer.src.grpc.servicer import RPCServicer
-    from service_crawler.src.crawling.pipeline import CrawlingPipeline
+    from service_crawler.src.crawling.worker_manager import CrawlingWorkerManager
     from service_crawler.src.db.repo import Repository
 
 
-def new_crawling_pipeline(concurrent_workers: int) -> "CrawlingPipeline":
-    from service_crawler.src.crawling.pipeline import CrawlingPipeline, Worker
+def new_worker_manager(concurrent_workers: int) -> "CrawlingWorkerManager":
+    from service_crawler.src.crawling.worker_manager import CrawlingWorkerManager, Worker
 
-    queue = asyncio.Queue(maxsize=100)
-    workers = [Worker(queue, idx) for idx in range(concurrent_workers)]
-    return CrawlingPipeline(queue, workers)
+    workers = [Worker(idx) for idx in range(concurrent_workers)]
+    return CrawlingWorkerManager(workers)
 
 
 def new_rpc_servicer() -> "RPCServicer":

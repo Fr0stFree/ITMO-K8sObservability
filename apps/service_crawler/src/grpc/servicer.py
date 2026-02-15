@@ -9,7 +9,7 @@ from protocol.crawler_pb2_grpc import (
     add_CrawlerServiceServicer_to_server,
 )
 from service_crawler.src.container import Container
-from service_crawler.src.crawling.pipeline import CrawlingPipeline
+from service_crawler.src.crawling.worker_manager import CrawlingWorkerManager
 from service_crawler.src.db.repo import Repository
 
 
@@ -22,10 +22,10 @@ class RPCServicer(CrawlerServiceServicer):
         context: ServicerContext,
         span: Span = Provide[Container.current_span],
         repo: Repository = Provide[Container.repository],
-        pipeline: CrawlingPipeline = Provide[Container.crawling_pipeline],
+        manager: CrawlingWorkerManager = Provide[Container.worker_manager],
     ) -> Empty:
         await repo.add_target(request.target_url)
-        pipeline.register_urls([request.target_url])
+        manager.register_urls([request.target_url])
         span.set_attribute("target.url", request.target_url)
         return Empty()
 
@@ -36,10 +36,10 @@ class RPCServicer(CrawlerServiceServicer):
         context: ServicerContext,
         span: Span = Provide[Container.current_span],
         repo: Repository = Provide[Container.repository],
-        pipeline: CrawlingPipeline = Provide[Container.crawling_pipeline],
+        manager: CrawlingWorkerManager = Provide[Container.worker_manager],
     ) -> Empty:
         await repo.remove_target(request.target_url)
-        pipeline.unregister_urls([request.target_url])
+        manager.unregister_urls([request.target_url])
         span.set_attribute("target.url", request.target_url)
         return Empty()
 

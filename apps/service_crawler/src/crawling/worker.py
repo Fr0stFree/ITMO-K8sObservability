@@ -5,15 +5,19 @@ import datetime as dt
 from http import HTTPMethod
 
 from aiohttp import ClientSession, ClientTimeout, TCPConnector
+from bubus import EventBus
 from dependency_injector.wiring import Provide, inject
-from opentelemetry.propagate import inject as inject_context
 from opentelemetry.trace import Tracer
-from opentelemetry.trace.span import Span
-from opentelemetry.trace.status import StatusCode
 
 from common.logs import LoggerLike
 from service_crawler.src.container import Container
 from service_crawler.src.crawling.const import REQUEST_HEADERS
+from service_crawler.src.crawling.events import (
+    WorkerCrawlCompletedEvent,
+    WorkerCrawlFailedEvent,
+    WorkerCrawlStartedEvent,
+    WorkerIdleEvent,
+)
 from service_crawler.src.crawling.models import CrawledURL, ResourceStatus
 
 
@@ -21,12 +25,8 @@ class Worker:
 
     @inject
     def __init__(
-        self,
-        queue: asyncio.Queue,
-        worker_number: int,
-        timeout: dt.timedelta = Provide[Container.settings.worker_request_timeout],
+        self, worker_number: int, timeout: dt.timedelta = Provide[Container.settings.worker_request_timeout]
     ) -> None:
-        self._queue = queue
         self._urls_to_crawl = []
         self._unique_urls = set()
         self._session = ClientSession(
@@ -36,7 +36,20 @@ class Worker:
         )
         self._task: asyncio.Task | None = None
         self._current_index = 0
-        self._worker_number = worker_number
+        self._worker_id = worker_number
+
+    async def start(self) -> None:
+        self._task = asyncio.create_task(self._run())
+
+    async def stop(self) -> None:
+        if self._task:
+            self._task.cancel()
+            with suppress(asyncio.CancelledError):
+                await self._task
+        await self._session.close()
+
+    async def is_healthy(self) -> bool:
+        return self._task is not None and not self._task.done()
 
     @inject
     def add_urls(
@@ -51,7 +64,7 @@ class Worker:
             "Added %d new URL(s) to crawl: %s",
             len(new_urls),
             ", ".join(new_urls),
-            extra={"urls": new_urls, "worker": self._worker_number},
+            extra={"urls": new_urls, "worker": self._worker_id},
         )
 
     @inject
@@ -67,85 +80,49 @@ class Worker:
             "Removed %d URL(s) from crawl list: %s",
             len(to_remove),
             to_remove,
-            extra={"urls": to_remove, "worker": self._worker_number},
+            extra={"urls": to_remove, "worker": self._worker_id},
         )
         self._current_index = 0
-
-    async def start(self) -> None:
-        self._task = asyncio.create_task(self._run())
 
     @inject
     async def _run(
         self,
+        bus: EventBus = Provide[Container.event_bus],
         tracer: Tracer = Provide[Container.tracer],
-        logger: LoggerLike = Provide[Container.logger],
     ) -> None:
         while True:
-            index = self._current_index % len(self._urls_to_crawl) if self._urls_to_crawl else 0
-            url = self._urls_to_crawl[index] if self._urls_to_crawl else None
+            url = self.__get_next_url()
             if url is None:
-                logger.warning("No URLs to crawl, worker is idling...", extra={"worker": self._worker_number})
-                await asyncio.sleep(5)
+                await bus.dispatch(WorkerIdleEvent(worker_id=self._worker_id))
                 continue
 
-            with tracer.start_as_current_span(
-                "http.crawl",
-                attributes={"http.url": url, "http.method": HTTPMethod.GET, "worker": self._worker_number},
-            ):
-                url = await self._crawl(url)
-                meta = {}
-                inject_context(meta)
-                await self._queue.put((url, meta))
-                self._current_index += 1
+            span = tracer.start_span("crawl.url")
+            event = WorkerCrawlStartedEvent(worker_id=self._worker_id, url=url, method=HTTPMethod.GET, span=span)
+            await bus.dispatch(event)
 
-    @inject
-    async def _crawl(
-        self,
-        url: str,
-        logger: LoggerLike = Provide[Container.logger],
-        span: Span = Provide[Container.current_span],
-    ) -> CrawledURL:
-        logger.info("Checking URL '%s'...", url, extra={"url": url, "worker": self._worker_number})
-        try:
-            async with self._session.get(url) as response:
-                span.set_attribute("http.status_code", response.status)
-                result = CrawledURL(
+            try:
+                async with self._session.get(url) as response:
+                    result = CrawledURL(
+                        url=url,
+                        status=ResourceStatus.UP if response.status < 400 else ResourceStatus.DOWN,
+                        updated_at=dt.datetime.now(tz=dt.UTC).isoformat(),
+                    )
+                event = WorkerCrawlCompletedEvent(worker_id=self._worker_id, result=result, span=span)
+            except Exception as error:
+                event = WorkerCrawlFailedEvent(
+                    worker_id=self._worker_id,
                     url=url,
-                    status=ResourceStatus.UP if response.status < 400 else ResourceStatus.DOWN,
-                    updated_at=dt.datetime.now(tz=dt.UTC).isoformat(),
+                    method=HTTPMethod.GET,
+                    error_message=str(error),
+                    span=span,
                 )
-                span.set_status(StatusCode.OK)
-                logger.info(
-                    "Crawled URL '%s' with status %d",
-                    url,
-                    response.status,
-                    extra={"url": url, "worker": self._worker_number},
-                )
-        except Exception as error:
-            logger.error(
-                "Error while checking URL '%s': %s",
-                url,
-                error,
-                extra={"url": url, "worker": self._worker_number},
-            )
-            result = CrawledURL(
-                url=url,
-                status=ResourceStatus.UNKNOWN,
-                updated_at=dt.datetime.now(tz=dt.UTC).isoformat(),
-                comment=str(error),
-            )
-            span.record_exception(error)
-            span.set_status(StatusCode.ERROR)
 
-        await asyncio.sleep(2)  # TODO: remove
-        return result
+            await bus.dispatch(event)
 
-    async def stop(self) -> None:
-        if self._task:
-            self._task.cancel()
-            with suppress(asyncio.CancelledError):
-                await self._task
-        await self._session.close()
+    def __get_next_url(self) -> str | None:
+        if not self._urls_to_crawl:
+            return None
 
-    async def is_healthy(self) -> bool:
-        return self._task is not None and not self._task.done()
+        url = self._urls_to_crawl[self._current_index % len(self._urls_to_crawl)]
+        self._current_index += 1
+        return url
