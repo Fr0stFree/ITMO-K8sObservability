@@ -10,3 +10,5 @@ apps/protocol/
 logs/
 
 loki-data/
+
+*.tgz

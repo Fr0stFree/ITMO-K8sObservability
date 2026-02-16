@@ -1,7 +1,0 @@
----
-apiVersion: v2
-type: application
-name: analyzer-service
-description: A Helm chart for Kubernetes to deploy the Analyzer service.
-version: 0.1.0
-appVersion: "latest"
