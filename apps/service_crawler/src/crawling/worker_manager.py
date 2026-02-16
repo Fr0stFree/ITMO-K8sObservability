@@ -1,6 +1,5 @@
 import asyncio
 from collections.abc import Iterable, Sequence
-from dataclasses import asdict
 from hashlib import md5
 
 from bubus import EventBus
@@ -106,20 +105,24 @@ class CrawlingWorkerManager:
         with use_span(event.span, end_on_exit=True) as span:
             attributes = {
                 "worker.id": event.worker_id,
-                "crawl.url": event.result.url,
-                "crawl.status": event.result.status,
+                "crawl.url": event.url,
+                "crawl.status": event.status,
+                "crawl.method": event.method,
             }
             span.set_attributes(attributes)
             span.set_status(StatusCode.OK)
             logger.info(
-                "Worker %d completed crawling URL '%s' with status '%s'",
-                event.worker_id,
-                event.result.url,
-                event.result.status,
+                "Worker %d completed crawling URL '%s' with status '%s'", event.worker_id, event.url, event.status
             )
-            await asyncio.sleep(2)  # TODO: remove
+
             with tracer.start_as_current_span("broker.produce"):
-                await producer.send(asdict(event.result), meta={})
+                payload = {
+                    "updated_at": event.event_created_at.isoformat(),
+                    "url": event.url,
+                    "status": event.status.value,
+                    "comment": event.comment,
+                }
+                await producer.send(payload, meta={})
 
     @inject
     async def _on_crawl_failed(
@@ -131,17 +134,17 @@ class CrawlingWorkerManager:
             attributes = {
                 "worker.id": event.worker_id,
                 "crawl.url": event.url,
-                "crawl.error": event.error_message,
+                "crawl.error": str(event.error),
             }
             span.set_attributes(attributes)
+            span.record_exception(event.error)
             span.set_status(StatusCode.ERROR)
-            logger.error(
+            logger.exception(
                 "Worker %d failed crawling URL '%s' with error '%s'",
                 event.worker_id,
                 event.url,
-                event.error_message,
+                event.error,
             )
-            await asyncio.sleep(2)  # TODO: remove
 
     @inject
     async def _on_worker_idle(
@@ -150,4 +153,3 @@ class CrawlingWorkerManager:
         logger: LoggerLike = Provide[Container.logger],
     ) -> None:
         logger.warning("Worker %d is idling due to no URLs to crawl", event.worker_id)
-        await asyncio.sleep(5)

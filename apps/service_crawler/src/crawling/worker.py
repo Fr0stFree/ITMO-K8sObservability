@@ -18,7 +18,7 @@ from service_crawler.src.crawling.events import (
     WorkerCrawlStartedEvent,
     WorkerIdleEvent,
 )
-from service_crawler.src.crawling.models import CrawledURL, ResourceStatus
+from service_crawler.src.crawling.models import ResourceStatus
 
 
 class Worker:
@@ -35,8 +35,8 @@ class Worker:
             connector=TCPConnector(verify_ssl=False),
         )
         self._task: asyncio.Task | None = None
-        self._current_index = 0
         self._worker_id = worker_number
+        self._current_index = 0
 
     async def start(self) -> None:
         self._task = asyncio.create_task(self._run())
@@ -94,30 +94,28 @@ class Worker:
             url = self.__get_next_url()
             if url is None:
                 await bus.dispatch(WorkerIdleEvent(worker_id=self._worker_id))
+                await asyncio.sleep(5)
                 continue
 
             span = tracer.start_span("crawl.url")
-            event = WorkerCrawlStartedEvent(worker_id=self._worker_id, url=url, method=HTTPMethod.GET, span=span)
+            method = HTTPMethod.GET
+            event = WorkerCrawlStartedEvent(worker_id=self._worker_id, url=url, method=method, span=span)
             await bus.dispatch(event)
 
             try:
                 async with self._session.get(url) as response:
-                    result = CrawledURL(
-                        url=url,
-                        status=ResourceStatus.UP if response.status < 400 else ResourceStatus.DOWN,
-                        updated_at=dt.datetime.now(tz=dt.UTC).isoformat(),
-                    )
-                event = WorkerCrawlCompletedEvent(worker_id=self._worker_id, result=result, span=span)
+                    status = ResourceStatus.UP if response.status < 400 else ResourceStatus.DOWN
+
+                event = WorkerCrawlCompletedEvent(
+                    worker_id=self._worker_id, span=span, status=status, method=method, url=url
+                )
             except Exception as error:
                 event = WorkerCrawlFailedEvent(
-                    worker_id=self._worker_id,
-                    url=url,
-                    method=HTTPMethod.GET,
-                    error_message=str(error),
-                    span=span,
+                    worker_id=self._worker_id, url=url, method=method, error=error, span=span
                 )
 
             await bus.dispatch(event)
+            await asyncio.sleep(2)
 
     def __get_next_url(self) -> str | None:
         if not self._urls_to_crawl:
