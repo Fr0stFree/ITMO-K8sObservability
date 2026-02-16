@@ -1,4 +1,4 @@
-prometheus_client==0.24.1
+bubus==1.5.6
 python_json_logger==4.0.0
 grpcio-tools==1.76.0
 grpcio==1.76.0

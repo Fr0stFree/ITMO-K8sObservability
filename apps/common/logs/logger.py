@@ -66,11 +66,7 @@ class LoggerHandle:
     async def stop(self) -> None:
         self._logger.info("Stopping logger...")
         if hasattr(self, "_exporter"):
-            self._exporter.shutdown()
-
-        for handler in self._logger.handlers:
-            handler.close()
-            self._logger.removeHandler(handler)
+            self._exporter.shutdown(timeout_millis=1000)
 
     async def is_healthy(self) -> bool:
         return True
