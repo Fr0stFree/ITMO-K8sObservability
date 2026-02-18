@@ -1,0 +1,10 @@
+redis:
+  image:
+    repository: bitnami/redis
+  
+  architecture: standalone
+  auth:
+    enabled: false
+  
+  persistence:
+    enabled: false

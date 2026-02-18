@@ -1,7 +1,8 @@
-opentelemetry-collector:
-  mode: deployment
+otel-collector:
   image:
     repository: otel/opentelemetry-collector-contrib
+
+  mode: deployment
   
   config:
     receivers:
@@ -21,8 +22,8 @@ opentelemetry-collector:
         tls:
           insecure: true
 
-      loki:
-        endpoint: http://loki:3100/loki/api/v1/push
+      otlphttp/loki:
+        endpoint: http://loki:3100/otlp
         tls:
           insecure: true
 
@@ -40,7 +41,7 @@ opentelemetry-collector:
         logs:
           receivers: [otlp]
           processors: [batch]
-          exporters: [loki]
+          exporters: [otlphttp/loki]
 
         metrics:
           receivers: [otlp]
