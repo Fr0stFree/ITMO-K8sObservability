@@ -20,13 +20,6 @@ kafka:
     external:
       protocol: PLAINTEXT
 
-  provisioning:
-    enabled: true
-    topics:
-      - name: url-statuses
-        partitions: 5
-        replicationFactor: 1
-
   persistence:
     enabled: false
 
