@@ -1,0 +1,20 @@
+service-api:
+  replicaCount: 1
+  image:
+    repository: "pulse-hub/service-api"
+    tag: "latest"
+    pullPolicy: "IfNotPresent"
+  service:
+    port: 8080
+  ingress:
+    host: api.pulse-hub.local
+  config:
+    TRACE_EXPORTER__IS_ENABLED: "true"
+    TRACE_EXPORTER__OTLP_ENDPOINT: "http://pulse-hub-otel-collector:4317"
+    METRICS_EXPORTER__IS_ENABLED: "true"
+    METRICS_EXPORTER__OTLP_ENDPOINT: "http://pulse-hub-otel-collector:4317"
+    LOGGING__IS_EXPORT_ENABLED: "true"
+    LOGGING__EXPORTING_ENDPOINT: "http://pulse-hub-otel-collector:4317"
+    HTTP_SERVER__PORT: "8080"
+    ANALYZER_CLIENT__ADDRESS: "analyzer:50051"
+    CRAWLER_CLIENT__ADDRESS: "crawler:50051"

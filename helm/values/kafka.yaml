@@ -1,0 +1,34 @@
+kafka:
+  repository: bitnami/kafka
+  kraft:
+    enabled: true
+
+  controller:
+    replicaCount: 1
+    controllerOnly: false
+
+  broker:
+    replicaCount: 1
+
+  listeners:
+    client:
+      protocol: PLAINTEXT
+    controller:
+      protocol: PLAINTEXT
+    interbroker:
+      protocol: PLAINTEXT
+    external:
+      protocol: PLAINTEXT
+
+  provisioning:
+    enabled: true
+    topics:
+      - name: url-statuses
+        partitions: 5
+        replicationFactor: 1
+
+  persistence:
+    enabled: false
+
+  externalAccess:
+    enabled: false
